@@ -1,3 +1,10 @@
+# logs
+*.log
+
+# jobs
+*.pbs
+*.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
