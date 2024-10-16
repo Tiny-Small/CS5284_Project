@@ -1,0 +1,87 @@
+
+-Goal-
+Given a text document that is potentially relevant to this activity, first identify all entities needed from the text in order to capture the information and ideas in the text.
+Next, report all relationships among the identified entities.
+
+-Steps-
+1. Identify all entities. For each identified entity, extract the following information:
+- entity_name: Name of the entity, capitalized
+- entity_type: Suggest several labels or categories for the entity. The categories should not be specific, but should be as general as possible.
+- entity_description: Comprehensive description of the entity's attributes and activities
+Format each entity as ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
+
+2. From the entities identified in step 1, identify all pairs of (source_entity, target_entity) that are *clearly related* to each other.
+For each pair of related entities, extract the following information:
+- source_entity: name of the source entity, as identified in step 1
+- target_entity: name of the target entity, as identified in step 1
+- relationship_description: explanation as to why you think the source entity and the target entity are related to each other
+- relationship_strength: a numeric score indicating strength of the relationship between the source entity and target entity
+Format each relationship as ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_strength>)
+
+3. Return output in The primary language of the provided texts is "English." as a single list of all the entities and relationships identified in steps 1 and 2. Use **{record_delimiter}** as the list delimiter.
+
+4. If you have to translate into The primary language of the provided texts is "English.", just translate the descriptions, nothing else!
+
+5. When finished, output {completion_delimiter}.
+
+-Examples-
+######################
+
+Example 1:
+
+text:
+ronics.com/info/data/semicond/thyristor/thyristor.php, http://www.ibiblio.org/kuphaldt/electricCircuits/Semi/SEMI_7.html, https://en.wikipedia.org/wiki/Thyristor, https://en.wikipedia.org/wiki/Thyristor, https://en.wikipedia.org/wiki/Power_semiconductor_device
+
+----------
+Query: why piston ring is sticking
+Query_id: 1073732
+Query_type: DESCRIPTION
+Answers: Because carbon between the rings and the piston-ie; in the Ring groove.
+Well_Formed_Answers: 
+is_selected: 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+passage_text: There are any number of tricks for freeing stuck pistons in an engine which has been sitting idle for a long time. Most involve putting a penetrating oil in the offending cylinder and periodically tapping
+------------------------
+output:
+("entity"{tuple_delimiter}THYRISTOR{tuple_delimiter}ELECTRONIC COMPONENT{tuple_delimiter}A thyristor is a solid-state semiconductor device with four layers of alternating N and P-type material. It acts as a switch, conducting when its gate receives a current trigger, and continues to conduct while the voltage across the device is forward-biased.{record_delimiter}
+("entity"{tuple_delimiter}POWER SEMICONDUCTOR DEVICE{tuple_delimiter}ELECTRONIC COMPONENT{tuple_delimiter}Power semiconductor devices are used to control and convert electric power in electronic circuits. They include components like thyristors, diodes, and transistors, which are essential in power electronics for efficient energy management.{record_delimiter}
+("entity"{tuple_delimiter}PISTON RING{tuple_delimiter}MECHANICAL COMPONENT{tuple_delimiter}Piston rings are metallic rings used to seal the combustion chamber, support heat transfer, and regulate oil consumption in an engine. They fit into grooves on the outer diameter of a piston.{record_delimiter}
+("entity"{tuple_delimiter}CARBON BUILD-UP{tuple_delimiter}CHEMICAL PROCESS{tuple_delimiter}Carbon build-up refers to the accumulation of carbon deposits in engine components, often resulting from incomplete combustion. This can lead to issues such as sticking piston rings, which affect engine performance.{record_delimiter}
+("relationship"{tuple_delimiter}THYRISTOR{tuple_delimiter}POWER SEMICONDUCTOR DEVICE{tuple_delimiter}A thyristor is a type of power semiconductor device used in electronic circuits for controlling power flow.{tuple_delimiter}8{record_delimiter}
+("relationship"{tuple_delimiter}PISTON RING{tuple_delimiter}CARBON BUILD-UP{tuple_delimiter}Carbon build-up in the ring groove can cause piston rings to stick, affecting engine performance.{tuple_delimiter}7{completion_delimiter}
+#############################
+
+
+Example 2:
+
+text:
+ coverage, benefits or treatment, please call the toll-free number on the back of your member ID card or find your BCBS company. Visit Member Services. In Ohio: Community Insurance Company. In Virginia: Anthem Health Plans of Virginia, Inc. trades as Anthem Blue Cross and Blue Shield in Virginia, and its service area is all of Virginia except for the City of Fairfax, the Town of Vienna, and the area east of State Route 123. Claims payments. Claims payments are incorporated into Anthem’s checks and. electronic fund transfers (EFT). For information on EFT and electronic remittance advice (ERA): •Go to https://www.anthem.com/home-providers.html and.
+url: http://www.bcbsm.com/providers.html, https://www.anthem.com/, https://provider2.anthem.com/wps/portal/ebpmybcc, https://secured.provider.anthem.com/AOPS/ec3/eanthem/anthem/affiliates/anth
+------------------------
+output:
+("entity"{tuple_delimiter}BCBS{tuple_delimiter}ORGANIZATION{tuple_delimiter}BCBS refers to Blue Cross Blue Shield, a federation of health insurance organizations providing coverage and benefits to members)
+{record_delimiter}
+("entity"{tuple_delimiter}COMMUNITY INSURANCE COMPANY{tuple_delimiter}ORGANIZATION{tuple_delimiter}Community Insurance Company operates in Ohio as part of the BCBS network)
+{record_delimiter}
+("entity"{tuple_delimiter}ANTHEM HEALTH PLANS OF VIRGINIA, INC.{tuple_delimiter}ORGANIZATION{tuple_delimiter}Anthem Health Plans of Virginia, Inc. operates as Anthem Blue Cross and Blue Shield in Virginia, excluding certain areas)
+{record_delimiter}
+("entity"{tuple_delimiter}ANTHEM BLUE CROSS AND BLUE SHIELD{tuple_delimiter}ORGANIZATION{tuple_delimiter}Anthem Blue Cross and Blue Shield is a health insurance provider operating in Virginia, except for specific regions)
+{record_delimiter}
+("entity"{tuple_delimiter}ELECTRONIC FUND TRANSFERS (EFT){tuple_delimiter}PROCESS{tuple_delimiter}EFT refers to the electronic transfer of funds, used by Anthem for claims payments)
+{record_delimiter}
+("entity"{tuple_delimiter}ELECTRONIC REMITTANCE ADVICE (ERA){tuple_delimiter}PROCESS{tuple_delimiter}ERA is a process providing detailed payment information electronically, used by Anthem)
+{record_delimiter}
+("relationship"{tuple_delimiter}ANTHEM HEALTH PLANS OF VIRGINIA, INC.{tuple_delimiter}ANTHEM BLUE CROSS AND BLUE SHIELD{tuple_delimiter}Anthem Health Plans of Virginia, Inc. trades as Anthem Blue Cross and Blue Shield in Virginia{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}ANTHEM BLUE CROSS AND BLUE SHIELD{tuple_delimiter}ELECTRONIC FUND TRANSFERS (EFT){tuple_delimiter}Anthem Blue Cross and Blue Shield uses EFT for claims payments{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}ANTHEM BLUE CROSS AND BLUE SHIELD{tuple_delimiter}ELECTRONIC REMITTANCE ADVICE (ERA){tuple_delimiter}Anthem Blue Cross and Blue Shield provides ERA for detailed payment information{tuple_delimiter}8)
+{completion_delimiter}
+#############################
+
+
+
+-Real Data-
+######################
+text: {input_text}
+######################
+output:
