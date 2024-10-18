@@ -1,0 +1,14 @@
+jupyter
+lxml_html_clean
+rank_bm25
+datasets
+newspaper4k
+bert-score
+nltk
+rouge-score
+sentence-transformers
+langchain
+transformers
+bitsandbytes
+torch
+accelerate

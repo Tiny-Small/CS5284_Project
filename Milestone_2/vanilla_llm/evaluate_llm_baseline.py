@@ -36,21 +36,25 @@ candidates = []
 
 # iterate each query
 for i in tqdm(range(len(data))):
-    rag = vanilla_RAG(data[i]['query'], [d for d in data[i]['documents'] if d])
-    top_k_sentences = rag.get_top_k_sentences(k=50)
-    question = rag.question
-    answer = data[i]['answer']
-    context = "\n".join(top_k_sentences)
-    predicted = llm.predict(question, context)
-    # write predicted and contexts
-    predicted = ' '.join(predicted.split()) # remove multiple white spaces in prediction
-    predicted_file.write(answer + '\t' + predicted + '\n')
-    contexts_file.write("||".join(top_k_sentences) + "\n===========================\n") # separators used to divide data
-    references.append(answer)
-    candidates.append(predicted)
-    # check empty prediction
-    if not predicted.strip():
-        print("Empty prediction at", i)
+    documents = [d for d in data[str(i)]['documents'] if d]
+    if documents:
+        rag = vanilla_RAG(data[str(i)]['query'], documents)
+        top_k_sentences = rag.get_top_k_sentences(k=50)
+        question = rag.question
+        answer = data[str(i)]['answer']
+        context = "\n".join(top_k_sentences)
+        predicted = llm.predict(question, context)
+        # write predicted and contexts
+        predicted = ' '.join(predicted.split()) # remove multiple white spaces in prediction
+        predicted_file.write(answer + '\t' + predicted + '\n')
+        contexts_file.write("||".join(top_k_sentences) + "\n===========================\n") # separators used to divide data
+        references.append(answer)
+        candidates.append(predicted)
+        # check empty prediction
+        if not predicted.strip():
+            print("Empty prediction at", i)
+    else:
+        print("No documents retrieved for", i)
 evaluator = EvaluateMetrics(references, candidates, args.sbert_path)
 results = evaluator.evaluate()
 # write results
