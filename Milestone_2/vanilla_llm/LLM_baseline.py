@@ -9,7 +9,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 class vanilla_RAG:
     def __init__(self, question, documents):
         self.question = question
-        self.links = links
         self.sentences = self.get_sentences(documents)
     def get_sentences(self, documents):
         sentences = []
