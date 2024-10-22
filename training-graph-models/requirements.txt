@@ -1,0 +1,7 @@
+Node2Vec
+pandas
+matplotlib
+torch-geometric
+Cython
+
+# install pytorch
