@@ -1,7 +1,12 @@
-Node2Vec
-pandas
-matplotlib
-torch-geometric
-Cython
+# Node2Vec
+# pandas
+# matplotlib
+# torch-geometric
+# Cython
 
 # install pytorch
+
+torch-geometric
+pandas
+sentence-transformers
+ipywidgets
