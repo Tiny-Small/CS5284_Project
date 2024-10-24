@@ -18,10 +18,10 @@ data = KGQADataset(path_to_node_embed, path_to_idxes, path_to_qa)
 
 dataloader = DataLoader(data, batch_size=32, collate_fn=collate_fn, shuffle=True)
 
-for batched_subgraphs, question_embeddings, labels in dataloader:
+for batched_subgraphs, labels in dataloader:
     break
 
-print(question_embeddings[0].shape)
+print(batched_subgraphs[0].qn.shape)
 print(sum(labels[0]))
 print(batched_subgraphs[0].num_nodes)
 print(batched_subgraphs[0].x.shape)
@@ -34,15 +34,12 @@ def collate_fn(batch):
     """
     DataLoader expects each batch to contain tensors or arrays, but torch_geometric.data.Data objects need to be batched in a special way.
     """
-    subgraphs, question_embeddings, labels = zip(*batch)
+    subgraphs, labels = zip(*batch)
     
     # Batch the subgraphs
     batched_subgraphs = Batch.from_data_list(subgraphs)
     
-    # Stack the question embeddings and labels
-    question_embeddings = torch.stack(question_embeddings)
-    
-    return batched_subgraphs, question_embeddings, list(labels)
+    return batched_subgraphs, list(labels)
 
 class KGQADataset(torch.utils.data.Dataset):
     def __init__(self, path_to_node_embed, path_to_idxes, path_to_qa, k=3):
@@ -88,7 +85,7 @@ class KGQADataset(torch.utils.data.Dataset):
         subgraph_data, node_map = self.get_k_hop_subgraph(entity_node)
 
         # Step 4: Get the question embedding (assuming you have a function for this)
-        question_embedding = self.q_embeddings[idx]
+        subgraph_data.qn = self.q_embeddings[idx]
 
         # Step 5: Get the labels (map answer entities to their node indices)
         labels = self.get_labels(answers, node_map)
@@ -96,7 +93,7 @@ class KGQADataset(torch.utils.data.Dataset):
         # Step 6: Add node2vec embeddings into the subgraph data
         subgraph_data.x = self.get_node_embeddings(node_map)
         
-        return subgraph_data, question_embedding, labels
+        return subgraph_data, labels
 
     def load_data_json(self, filename):
         with open(filename, 'r') as f:
