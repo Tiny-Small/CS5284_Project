@@ -47,22 +47,7 @@ def collate_fn(batch):
     # Concatenate labels and reshape to (N, 1) where N is the total number of nodes in the batch
     stacked_labels = torch.cat(labels).unsqueeze(1)
 
-    # # Pad labels so they all have the same size
-    # max_num_nodes = max([label.size(0) for label in labels])
-    # padded_labels = [F.pad(label, (0, max_num_nodes - label.size(0)), value=0) for label in labels]
-
-    # # Create a mask where padded entries are 0, and valid entries are 1
-    # masks = [torch.ones_like(label) for label in labels]
-    # padded_masks = [F.pad(mask, (0, max_num_nodes - mask.size(0)), value=0) for mask in masks]
-
-    # # Pad labels so they all have the same size
-    # max_num_nodes = max([label.size(0) for label in labels])
-    # padded_labels = [F.pad(label, (0, max_num_nodes - label.size(0)), value=0) for label in labels]
-
-    # return batched_subgraphs, question_embeddings, list(padded_labels) #list(labels)
-
-    # return batched_subgraphs, question_embeddings, torch.stack(padded_labels), torch.stack(padded_masks)
-    return batched_subgraphs, question_embeddings, stacked_labels, node_maps #list(labels)
+    return batched_subgraphs, question_embeddings, stacked_labels, node_maps, list(labels)
 
 
 class KGQADataset(torch.utils.data.Dataset):
