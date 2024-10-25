@@ -3,29 +3,30 @@ import pandas as pd
 from torch_geometric.utils import k_hop_subgraph
 import pandas as pd
 from torch_geometric.data import Data
-
+import random
 
 class KGQADataset(torch.utils.data.Dataset):
     def __init__(self, model, path_to_node_embed, path_to_idxes, path_to_qa, k=3):
         """
-        path_to_node_embed (str): Path to node embeddings (node2vec).
-        path_to_idxes (str): Path to idxes extracted (entity_to_idx, edge_index, relations).
-        path_to_qa (str): Path to question and answers.
-        k (int): Number of hops (default is 3).
+        Initialize without precomputed subgraphs. Computes k-hop subgraphs on-the-fly.
         """
-        # load data object (graph)
-        self.loaded_entity_to_idx, self.loaded_edge_index, self.loaded_relations = self.load_data_pt(path_to_idxes)
+        # Load the main graph data
+        self.loaded_entity_to_idx, self.loaded_edge_index, self.loaded_relations = self.load_data_json(path_to_idxes)
         self.data = self.create_data_object(self.loaded_edge_index, self.loaded_relations, self.loaded_entity_to_idx)
 
-        # load the questions and answers
+        # Load question and answer data
         self.df = pd.read_csv(path_to_qa, sep='\t', header=None, names=['question', 'answer'])
         self.df['answer'] = self.df['answer'].apply(lambda x: x.split("|"))
         self.k = k
 
-        # load the sentence embeddings
-        self.q_embeddings = model.encode([q.replace("[", "").replace("]", "") for q in self.df['question']], batch_size=128, convert_to_tensor=True) # 32
+        # Load sentence embeddings
+        self.q_embeddings = model.encode(
+            [q.replace("[", "").replace("]", "") for q in self.df['question']],
+            batch_size=128,
+            convert_to_tensor=True
+        )
 
-        # load the node2vec embeddings
+        # Load node2vec embeddings
         self.node2vec_embeddings = self.load_node2vec_embeddings(path_to_node_embed)
 
     def __len__(self):
@@ -34,33 +35,61 @@ class KGQADataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         # Get the question and answers from the DataFrame
         row = self.df.iloc[idx]
-        question = row['question']
-        answers = row['answer']
+        question, answers = row['question'], row['answer']
 
         # Step 1: Extract the entity from the question (entity marked in square brackets)
         entity = self.extract_entity_from_question(question)
-
-        # Step 2: Get the node index corresponding to the entity
         if entity not in self.loaded_entity_to_idx:
             raise ValueError(f"Entity {entity} not found in node index.")
         entity_node = self.loaded_entity_to_idx[entity]
 
-        # Step 3: Get the k-hop subgraph around the question entity
-        subgraph_data, node_map = self.get_k_hop_subgraph(entity_node)
+        # Step 2: Compute the k-hop subgraph around the entity dynamically
+        subset_node_indices, sub_edge_index, _, _ = self.get_k_hop_subgraph(entity_node)
 
-        # Step 4: Get the question embedding (assuming you have a function for this)
+        # Step 3: Construct the subgraph based on these subset indices
+        subgraph_data, node_map = self.construct_subgraph(subset_node_indices, sub_edge_index)
+
+        # Step 4: Get the question embedding
         question_embedding = self.q_embeddings[idx]
 
-        # Step 5: Get the labels (map answer entities to their node indices)
+        # Step 5: Get the labels
         labels = self.get_labels(answers, node_map)
 
-        # Step 6: Add node2vec embeddings into the subgraph data
+        # Step 6: Add node2vec embeddings to the subgraph data
         subgraph_data.x = self.get_node_embeddings(node_map)
 
-        # Step 7: Append node_map as an attribute of subgraph_data
-        # subgraph_data.node_map = node_map  # Adding node_map to subgraph_data
-
         return subgraph_data, question_embedding, labels, node_map
+
+    def get_k_hop_subgraph(self, entity_node):
+        """
+        Compute the k-hop subgraph dynamically for a given entity node.
+        """
+        subset, sub_edge_index, mapping, edge_mask = k_hop_subgraph(
+            node_idx=entity_node,
+            num_hops=self.k,
+            edge_index=self.data.edge_index,
+            relabel_nodes=True
+        )
+        return subset, sub_edge_index, mapping, edge_mask
+
+    def construct_subgraph(self, subset_node_indices, sub_edge_index):
+        """
+        Construct a subgraph Data object for the given subset of nodes and edges.
+        """
+        node_map = {old_idx.item(): new_idx for new_idx, old_idx in enumerate(subset_node_indices)}
+
+        # Map edges to subgraph indices
+        mapped_edge_index = torch.tensor(
+            [[node_map[src.item()], node_map[dst.item()]] for src, dst in sub_edge_index.t()],
+            dtype=torch.long
+        ).t().contiguous()
+
+        # Create subgraph data object
+        subgraph_data = Data(edge_index=mapped_edge_index)
+        
+        return subgraph_data, node_map
+
+
 
     def load_data_json(self, filename):
         with open(filename, 'r') as f:
@@ -68,8 +97,14 @@ class KGQADataset(torch.utils.data.Dataset):
         return data['entity_to_idx'], data['edge_index'], data['relations']
     
     def load_data_pt(self, filename):
+        """
+        Load the list of subsets (k-hop subgraph node indices) from the .pt file.
+        """
         data = torch.load(filename)
-        return data['entity_to_idx'], data['edge_index'], data['relations']
+        if isinstance(data, list):
+            return data  # Return the list of subsets
+        else:
+            raise ValueError("Expected a list of k-hop subgraph node indices.")
 
 
     def create_data_object(self, edge_index, relations, entity_to_idx):
@@ -116,28 +151,28 @@ class KGQADataset(torch.utils.data.Dataset):
             raise ValueError(f"No entity found in the question: {question}")
         return question[start:end]
 
-    def get_k_hop_subgraph(self, node_idx):
-        """
-        Get the k-hop subgraph centered around the given node index.
-        node_idx (int): Index of the node representing the entity.
-        """
-        # Extract k-hop subgraph from the full graph
-        node_idx = torch.tensor([node_idx], dtype=torch.long)
-        subset, sub_edge_index, _, _ = k_hop_subgraph(
-            node_idx=node_idx,
-            num_hops=self.k,
-            edge_index=self.data.edge_index,
-            relabel_nodes=True
-        )
+    # def get_k_hop_subgraph(self, node_idx):
+    #     """
+    #     Get the k-hop subgraph centered around the given node index.
+    #     node_idx (int): Index of the node representing the entity.
+    #     """
+    #     # Extract k-hop subgraph from the full graph
+    #     node_idx = torch.tensor([node_idx], dtype=torch.long)
+    #     subset, sub_edge_index, _, _ = k_hop_subgraph(
+    #         node_idx=node_idx,
+    #         num_hops=self.k,
+    #         edge_index=self.data.edge_index,
+    #         relabel_nodes=True
+    #     )
 
-        # Create a subgraph Data object
-        # subgraph = Data(x=self.data.x[subset], edge_index=sub_edge_index)
-        subgraph = Data(edge_index=sub_edge_index)
+    #     # Create a subgraph Data object
+    #     # subgraph = Data(x=self.data.x[subset], edge_index=sub_edge_index)
+    #     subgraph = Data(edge_index=sub_edge_index)
 
-        # Create a mapping from original node indices to subgraph indices
-        node_map = {original_idx.item(): new_idx for new_idx, original_idx in enumerate(subset)}
+    #     # Create a mapping from original node indices to subgraph indices
+    #     node_map = {original_idx.item(): new_idx for new_idx, original_idx in enumerate(subset)}
 
-        return subgraph, node_map
+    #     return subgraph, node_map
 
     def get_labels(self, answers, node_map):
         labels = torch.zeros(len(node_map), dtype=torch.long)

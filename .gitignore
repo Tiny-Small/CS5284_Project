@@ -185,9 +185,9 @@ Milestone_1/GraphRAG/output/indexing-engine.log
 
 
 
-
+# For GNN
 */logs/
-/hpctmp/e0315913/CS5284_Project/GNN/data/processed/qa_train_subsets.pt
-/hpctmp/e0315913/CS5284_Project/GNN/src/models/models--sentence-transformers--multi-qa-MiniLM-L6-cos-v1
+GNN/data/processed/qa_train_subsets.pt
+GNN/src/models/models--sentence-transformers--multi-qa-MiniLM-L6-cos-v1
 tensorflow.*
-/hpctmp/e0315913/CS5284_Project/data_preparation/qa_train_subgraph_idxes.json
+data_preparation/qa_train_subgraph_idxes.json
