@@ -6,10 +6,11 @@ def train_one_epoch(model, train_loader, optimizer, loss_fn, device):
     total_loss = 0
     for batched_subgraphs, question_embeddings, stacked_labels, _, _ in train_loader:
         batched_subgraphs = batched_subgraphs.to(device)
+        question_embeddings = question_embeddings.to(device)
         stacked_labels = stacked_labels.to(device)
         
         optimizer.zero_grad()
-        output = model(batched_subgraphs)
+        output = model(batched_subgraphs, question_embeddings)
         loss = loss_fn(output, stacked_labels)
         loss.backward()
         optimizer.step()
