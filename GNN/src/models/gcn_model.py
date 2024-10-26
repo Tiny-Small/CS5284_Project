@@ -12,37 +12,38 @@ class GCNModel(torch.nn.Module):
             num_layers (int): Number of GCN layers (default is 2).
         """
         super(GCNModel, self).__init__()
-        
         self.convs = torch.nn.ModuleList()
-        
-        # Input layer
         self.convs.append(GCNConv(in_channels, hidden_channels))
-        
-        # Hidden layers
         for _ in range(num_layers - 2):
             self.convs.append(GCNConv(hidden_channels, hidden_channels))
-        
-        # Output layer
         self.convs.append(GCNConv(hidden_channels, out_channels))
 
-    def forward(self, data):
+        # Optional: Add a linear layer to process question embeddings
+        self.question_fc = torch.nn.Linear(hidden_channels, hidden_channels)
+
+    def forward(self, data, question_embeddings):
         """
         Forward pass through the GCN.
         
         Args:
             data (torch_geometric.data.Data): A graph data object containing x (node features) and edge_index (graph edges).
+            question_embeddings: 
         
         Returns:
             torch.Tensor: Output node embeddings or class scores.
         """
         x, edge_index = data.x, data.edge_index
 
-        # Pass through GCN layers
-        for i, conv in enumerate(self.convs[:-1]):
+        # Process graph with GCN layers
+        for conv in self.convs[:-1]:
             x = conv(x, edge_index)
             x = F.relu(x)
         
-        # Output layer (no activation)
+        # Output layer
         x = self.convs[-1](x, edge_index)
+        
+        # Combine question embeddings with graph features
+        question_embeds = self.question_fc(question_embeddings).unsqueeze(1)
+        x = x + question_embeds  # Example: add question embeddings to node features
 
-        return F.log_softmax(x, dim=1)  # Use log_softmax for classification
+        return F.log_softmax(x, dim=1)

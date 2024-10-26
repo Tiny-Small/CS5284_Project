@@ -11,16 +11,24 @@ def evaluate(dataloader, model, device):
     with torch.no_grad():
         for batched_subgraphs, question_embeddings, stacked_labels, _, _ in dataloader:
             batched_subgraphs = batched_subgraphs.to(device)
+            question_embeddings = question_embeddings.to(device)
             stacked_labels = stacked_labels.to(device)
-            output = model(batched_subgraphs).cpu()
+            
+            # Pass both the graph and question embeddings to the model
+            output = model(batched_subgraphs, question_embeddings).cpu()
 
-            # Calculate accuracy for each subgraph
+            # Assume a binary classification task for node-level predictions
             preds = (torch.sigmoid(output) > 0.5).int()
-            all_preds.extend(preds.tolist())
-            all_labels.extend(stacked_labels.tolist())
-            correct += (preds == stacked_labels).sum().item()
-            total += stacked_labels.size(0)
 
+            # Flatten tensors to match the dimensions correctly if necessary
+            all_preds.extend(preds.view(-1).tolist())
+            all_labels.extend(stacked_labels.view(-1).tolist())
+
+            # Calculate the number of correct predictions
+            correct += (preds == stacked_labels).sum().item()
+            total += stacked_labels.numel()  # total number of elements in labels
+
+    # Calculate accuracy, precision, recall, and F1 score
     accuracy = correct / total
     precision = precision_score(all_labels, all_preds, average='binary')
     recall = recall_score(all_labels, all_preds, average='binary')
