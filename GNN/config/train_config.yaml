@@ -1,0 +1,18 @@
+# config/train_config.yaml
+model:
+  name: "GCNModel"
+  in_channels: 128
+  out_channels: 64
+  num_heads: 8  # GAT-specific parameter
+
+train:
+  batch_size: 32
+  num_epochs: 10
+  learning_rate: 0.001
+
+
+node_embed: "/hpctmp/e0315913/CS5284_Project/GNN/data/embeddings/ud_node2vec_embeddings.txt"  # Path to node embeddings file
+idxes: "/hpctmp/e0315913/CS5284_Project/data_preparation/qa_train_subgraph_idxes.json"  # Path to indexes file
+train_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN/data/raw/qa_train_qtype.txt"  # Path to QA dataset
+test_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN/data/raw/qa_test_qtype.txt" 
+num_hops: 3  # Number of hops for dataset configuration
