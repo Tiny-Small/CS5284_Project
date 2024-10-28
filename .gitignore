@@ -170,8 +170,12 @@ cython_debug/
 
 .python-version
 
-# Ignore all .env files in any folder
+# Ignore all .env and .sh files in any folder
 **/.env
+**/.sh
+# Ignore huggingface models
+**/models--sentence-transformers--multi-qa-MiniLM-L6-cos-v1/
+**/.locks/
 
 # The data files from HuggingFace is about 3gb which can make pulling from git slow.
 Datasets/.._Datasets_microsoft___ms_marco_v2.1_0.0.0_a47ee7aae8d7d466ba15f9f0bfac3b3681087b3a.lock
@@ -183,7 +187,8 @@ Milestone_1/GraphRAG/cache/*
 Milestone_1/GraphRAG/output/logs.json
 Milestone_1/GraphRAG/output/indexing-engine.log
 
-
+# Experiments
+z_ignore/
 
 # For GNN
 */logs/
