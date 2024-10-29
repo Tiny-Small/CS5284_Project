@@ -151,7 +151,7 @@ class KGQADataset(torch.utils.data.Dataset):
         """
         # Extract k-hop subgraph from the full graph
         node_idx = torch.tensor([node_idx], dtype=torch.long)
-        subset, sub_edge_index, _, _ = k_hop_subgraph(
+        subset, sub_edge_index, mapping, edge_mask = k_hop_subgraph(
             node_idx=node_idx,
             num_hops=self.k,
             edge_index=self.data.edge_index,
@@ -160,7 +160,9 @@ class KGQADataset(torch.utils.data.Dataset):
 
         # Create a subgraph Data object
         # subgraph = Data(x=self.data.x[subset], edge_index=sub_edge_index)
-        subgraph = Data(edge_index=sub_edge_index)
+        # subgraph = Data(edge_index=sub_edge_index)
+        sub_edge_attr = self.data.edge_attr[edge_mask]
+        subgraph = Data(edge_index=sub_edge_index, edge_attr=sub_edge_attr)
 
         # Create a mapping from original node indices to subgraph indices
         node_map = {original_idx.item(): new_idx for new_idx, original_idx in enumerate(subset)}
