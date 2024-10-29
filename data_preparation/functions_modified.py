@@ -10,17 +10,18 @@ import random
 
 """
 # sample code how to use
-from functions import *
+from functions_modified import *
 from torch.utils.data import DataLoader
 
 path_to_node_embed = '../Datasets/MetaQA_dataset/processed/node2vec _embeddings/ud_node2vec_embeddings.txt'
 path_to_idxes = '../Datasets/MetaQA_dataset/processed/idxes.json'
 path_to_qa = '../Datasets/MetaQA_dataset/vanilla 3-hop/qa_train.txt'
-data = KGQADataset(path_to_node_embed, path_to_idxes, path_to_qa)
+path_to_ans_types = '../Datasets/MetaQA_dataset/processed/train_ans_type.txt'
+data = KGQADataset(path_to_node_embed, path_to_idxes, path_to_qa, path_to_ans_types, train = True)
 
-dataloader = DataLoader(data, batch_size=32, collate_fn=collate_fn, shuffle=True)
+dataloader = DataLoader(data, batch_size=16, collate_fn=collate_fn, shuffle=True)
 
-for batched_subgraphs, question_embeddings, labels in dataloader:
+for batched_subgraphs, question_embeddings, stacked_labels, node_maps, labels, answer_types in dataloader:
     break
 
 print(question_embeddings[0].shape)
@@ -36,7 +37,7 @@ def collate_fn(batch):
     """
     DataLoader expects each batch to contain tensors or arrays, but torch_geometric.data.Data objects need to be batched in a special way.
     """
-    subgraphs, question_embeddings, labels, node_maps = zip(*batch)
+    subgraphs, question_embeddings, labels, node_maps, answer_type = zip(*batch)
 
     # Batch the subgraphs
     batched_subgraphs = Batch.from_data_list(subgraphs)
@@ -47,15 +48,16 @@ def collate_fn(batch):
     # Concatenate labels and reshape to (N, 1) where N is the total number of nodes in the batch
     stacked_labels = torch.cat(labels).unsqueeze(1)
 
-    return batched_subgraphs, question_embeddings, stacked_labels, node_maps, list(labels)
+    return batched_subgraphs, question_embeddings, stacked_labels, node_maps, list(labels), list(answer_type)
 
 
 class KGQADataset(torch.utils.data.Dataset):
-    def __init__(self, path_to_node_embed, path_to_idxes, path_to_qa, k=3):
+    def __init__(self, path_to_node_embed, path_to_idxes, path_to_qa, path_to_ans_types, train, k=3):
         """
         path_to_node_embed (str): Path to node embeddings (node2vec).
         path_to_idxes (str): Path to idxes extracted (entity_to_idx, edge_index, relations).
         path_to_qa (str): Path to question and answers.
+        path_to_ans_types (str): Path to answer types.
         k (int): Number of hops (default is 3).
         """
         # load data object (graph)
@@ -65,7 +67,14 @@ class KGQADataset(torch.utils.data.Dataset):
         # load the questions and answers
         self.df = pd.read_csv(path_to_qa, sep='\t', header=None, names=['question', 'answer'])
         self.df['answer'] = self.df['answer'].apply(lambda x: x.split("|"))
+        if train:
+            self.df = self.df.iloc[:5000] ###
+        else:
+            self.df = self.df.iloc[:1000] ###
         self.k = k
+
+        # load answer types
+        self.answer_types = self.load_answer_type(path_to_ans_types)
 
         # load the sentence embeddings
         self.q_embeddings = model.encode([q.replace("[", "").replace("]", "") for q in self.df['question']], batch_size=128, convert_to_tensor=True) # 32
@@ -95,6 +104,7 @@ class KGQADataset(torch.utils.data.Dataset):
 
         # Step 4: Get the question embedding (assuming you have a function for this)
         question_embedding = self.q_embeddings[idx]
+        subgraph_data.qn = self.q_embeddings[idx] ### added for convenience
 
         # Step 5: Get the labels (map answer entities to their node indices)
         labels = self.get_labels(answers, node_map)
@@ -105,7 +115,13 @@ class KGQADataset(torch.utils.data.Dataset):
         # Step 7: Append node_map as an attribute of subgraph_data
         # subgraph_data.node_map = node_map  # Adding node_map to subgraph_data
 
-        return subgraph_data, question_embedding, labels, node_map
+        # Step 8: Get the entity types of each node in the subgraph
+        subgraph_data.node_types = self.get_node_types(node_map)
+
+        # Step 9: Extract target answer type
+        answer_type = self.answer_types[idx]
+
+        return subgraph_data, question_embedding, labels, node_map, answer_type
 
     def load_data_json(self, filename):
         with open(filename, 'r') as f:
@@ -215,3 +231,62 @@ class KGQADataset(torch.utils.data.Dataset):
                 # embeddings[new] = [random.uniform(-0.1, 0.1) for _ in range(embedding_dim)]
 
         return torch.tensor(embeddings, dtype=torch.float)
+
+    def get_node_types(self, node_map):
+        """
+        Get entity types for each node in the subgraph based on edge relations.
+        Returns a list of entity types for each node in the subgraph.
+        """
+        entity_type_mapping = {'starred_actors': 'actor', 'has_genre': 'genre', 'has_imdb_votes': 'votes', 'written_by': 'writer', 'has_imdb_rating': 'rating', 'release_year': 'year', 'has_tags': 'tag', 'in_language': 'language', 'directed_by': 'director'}
+        
+        # Initialize node types with 'unknown' by default
+        node_types = ['unknown'] * len(node_map)
+
+        # Loop over edges in the original graph to find relevant edges for subgraph nodes
+        for edge_idx, (src, dst) in enumerate(self.loaded_edge_index):
+            # Check if destination node is in the subgraph
+            if dst in node_map:
+                # Map to subgraph node index
+                dst_idx = node_map[dst]
+                # Load edge relation
+                relation = self.loaded_relations[edge_idx]
+                
+                # Map the relation to an entity type if possible
+                if relation in entity_type_mapping:
+                    node_types[dst_idx] = entity_type_mapping[relation]
+
+        return node_types
+    
+    # def get_node_types(self, node_map):
+    #     """
+    #     Get entity types for each node in the subgraph based on edge relations.
+    #     Returns a tensor of entity types for each node.
+    #     """
+    #     entity_type_mapping = {'starred_actors': 'actor', 'has_genre': 'genre', 'has_imdb_votes': 'votes', 'written_by': 'writer', 'has_imdb_rating': 'rating', 'release_year': 'year', 'has_tags': 'tag', 'in_language': 'language', 'directed_by': 'director'}
+        
+    #     entity_types = []
+    #     idx_to_entity = {v: k for k, v in self.loaded_entity_to_idx.items()}
+
+    #     for ori, new in node_map.items():
+    #         entity = idx_to_entity[ori]
+    #         edges = (self.data.edge_index[0] == ori).nonzero(as_tuple=True)[0]
+            
+    #         # Get entity type based on incoming edges, use the first applicable relation
+    #         node_type = 'unknown'  # Default for nodes without a known relation
+    #         for edge_idx in edges:
+    #             relation = self.loaded_relations[edge_idx.item()]
+    #             if relation in entity_type_mapping:
+    #                 node_type = entity_type_mapping[relation]
+    #                 break  # Use the first valid relation found
+
+    #         entity_types.append(node_type)
+
+    #     return entity_types
+
+    def load_answer_type(self, path_to_ans_types):
+        pred_types = []
+        with open(path_to_ans_types) as f:
+            for line in f:
+                if line:
+                    pred_types.append(line.strip())
+        return pred_types
