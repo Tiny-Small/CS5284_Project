@@ -14,6 +14,9 @@ class KGQADataset(torch.utils.data.Dataset):
         self.loaded_entity_to_idx, self.loaded_edge_index, self.loaded_relations = self.load_data_json(path_to_idxes)
         self.data = self.create_data_object(self.loaded_edge_index, self.loaded_relations, self.loaded_entity_to_idx)
 
+        # Store the global number of unique relations
+        self.num_relations = len(set(self.loaded_relations))
+
         # Load question and answer data
         self.df = pd.read_csv(path_to_qa, sep='\t', header=None, names=['question', 'answer'])
         self.df['answer'] = self.df['answer'].apply(lambda x: x.split("|"))
@@ -44,10 +47,10 @@ class KGQADataset(torch.utils.data.Dataset):
         entity_node = self.loaded_entity_to_idx[entity]
 
         # Step 2: Compute the k-hop subgraph around the entity dynamically
-        subset_node_indices, sub_edge_index, _, _ = self.get_k_hop_subgraph(entity_node)
+        subset_node_indices, sub_edge_index, _, edge_mask = self.get_k_hop_subgraph(entity_node)
 
         # Step 3: Construct the subgraph based on these subset indices
-        subgraph_data, node_map = self.construct_subgraph(subset_node_indices, sub_edge_index)
+        subgraph_data, node_map = self.construct_subgraph(subset_node_indices, sub_edge_index, edge_mask)
 
         # Step 4: Get the question embedding
         question_embedding = self.q_embeddings[idx]
@@ -72,21 +75,15 @@ class KGQADataset(torch.utils.data.Dataset):
         )
         return subset, sub_edge_index, mapping, edge_mask
 
-    def construct_subgraph(self, subset_node_indices, sub_edge_index):
+    def construct_subgraph(self, subset_node_indices, sub_edge_index, edge_mask):
         """
         Construct a subgraph Data object for the given subset of nodes and edges.
         """
         node_map = {old_idx.item(): new_idx for new_idx, old_idx in enumerate(subset_node_indices)}
 
-        # # Map edges to subgraph indices
-        # mapped_edge_index = torch.tensor(
-        #     [[node_map[src.item()], node_map[dst.item()]] for src, dst in sub_edge_index.t()],
-        #     dtype=torch.long
-        # ).t().contiguous()
-
         # # Create subgraph data object
-        # subgraph_data = Data(edge_index=mapped_edge_index)
-        subgraph_data = Data(edge_index=sub_edge_index) # sub_edge_index is get_k_hop_subgraph's sub_edge_index
+        sub_edge_attr = self.data.edge_attr[edge_mask]
+        subgraph_data = Data(edge_index=sub_edge_index, edge_attr=sub_edge_attr) # sub_edge_index is get_k_hop_subgraph's sub_edge_index
         return subgraph_data, node_map
 
 

@@ -2,41 +2,7 @@ import torch
 import torch_scatter
 from sklearn.metrics import precision_score, recall_score, f1_score
 from tqdm import tqdm
-
-# def evaluate(dataloader, model, device):
-#     model.eval()
-#     correct = 0
-#     total = 0
-#     all_preds = []
-#     all_labels = []
-
-#     with torch.no_grad():
-#         for batched_subgraphs, question_embeddings, stacked_labels, _, _ in dataloader:
-#             batched_subgraphs = batched_subgraphs.to(device)
-#             question_embeddings = question_embeddings.to(device)
-#             stacked_labels = stacked_labels.to(device)
-
-#             # Pass both the graph and question embeddings to the model
-#             output = model(batched_subgraphs, question_embeddings).cpu()
-
-#             # Assume a binary classification task for node-level predictions
-#             preds = (torch.sigmoid(output) > 0.5).int()
-
-#             # Flatten tensors to match the dimensions correctly if necessary
-#             all_preds.extend(preds.view(-1).tolist())
-#             all_labels.extend(stacked_labels.view(-1).tolist())
-
-#             # Calculate the number of correct predictions
-#             correct += (preds == stacked_labels).sum().item()
-#             total += stacked_labels.numel()  # total number of elements in labels
-
-#     # Calculate accuracy, precision, recall, and F1 score
-#     accuracy = correct / total
-#     precision = precision_score(all_labels, all_preds, average='binary')
-#     recall = recall_score(all_labels, all_preds, average='binary')
-#     f1 = f1_score(all_labels, all_preds, average='binary')
-
-#     return accuracy, precision, recall, f1
+from src.models.threshold_model import ThresholdedModel, custom_loss_fn
 
 def hits_at_k_kgqa_scatter(preds, labels, subgraph_batch, k=1):
     """
@@ -84,16 +50,22 @@ def evaluate(dataloader, model, device, equal_subgraph_weighting, k=1):
     batch_recalls = []
     batch_f1s = []
     batch_hits_at_k = []
+    batch_full = []
 
     with torch.no_grad():
-        for batched_subgraphs, question_embeddings, stacked_labels, _, _ in tqdm(dataloader, desc="Evaluation", leave=True):
+        for batched_subgraphs, question_embeddings, stacked_labels, _, _ in tqdm(dataloader, desc="Evaluation Progress", leave=True):
             batched_subgraphs = batched_subgraphs.to(device)
             question_embeddings = question_embeddings.to(device)
             stacked_labels = stacked_labels.to(device)
 
-            # Forward pass
-            output = model(batched_subgraphs, question_embeddings)
-            preds = (torch.sigmoid(output) > 0.5).int()
+            # Forward pass, handling ThresholdedModel differently
+            if isinstance(model, ThresholdedModel):
+                output, threshold = model(batched_subgraphs, question_embeddings)  # Model returns logits and threshold
+            else:
+                output = model(batched_subgraphs, question_embeddings)  # Regular model returns logits only
+                threshold = 0.5
+
+            preds = (torch.sigmoid(output) > threshold).int()
 
             # Flatten predictions and labels
             predicted_flat = preds.view(-1)
@@ -113,21 +85,31 @@ def evaluate(dataloader, model, device, equal_subgraph_weighting, k=1):
                 correct_per_subgraph = torch_scatter.scatter_add(correct_predictions, batched_subgraphs.batch, dim=0) # Sum correct predictions per subgraph
                 subgraph_accuracies = correct_per_subgraph / nodes_per_subgraph # Calculate accuracy per subgraph
 
+                all_correct = (correct_per_subgraph == nodes_per_subgraph).float() # Full calculation as per paper
+                full_accuracies = all_correct / nodes_per_subgraph
+
                 batch_accuracies.extend(subgraph_accuracies.cpu().tolist()) # Append accuracies for each subgraph in the batch
+                batch_full.extend(full_accuracies.cpu().tolist()) # Append accuracies for each subgraph in the batch
 
                 # Compute precision, recall, and F1-score per subgraph
                 for i in range(num_subgraphs):
                     node_mask = (batched_subgraphs.batch == i)
+                    # input(f"node_mask:{node_mask}")
                     labels_subgraph = labels_flat[node_mask].cpu().numpy()
+                    # input(f"sum(labels_subgraph):{sum(labels_subgraph)} | len(set(labels_subgraph)):{len(set(labels_subgraph))}")
                     predicted_subgraph = predicted_flat[node_mask].cpu().numpy()
+                    # input(f"sum(predicted_subgraph):{sum(predicted_subgraph)}")
 
+                    # input(f"len(set(labels_subgraph)) > 1:{len(set(labels_subgraph)) > 1}")
                     if len(set(labels_subgraph)) > 1:
                         precision = precision_score(labels_subgraph, predicted_subgraph, average='binary', zero_division=0)
                         recall = recall_score(labels_subgraph, predicted_subgraph, average='binary', zero_division=0)
                         f1 = f1_score(labels_subgraph, predicted_subgraph, average='binary', zero_division=0)
+                        # input(f"precision:{precision}, recall:{recall}, f1:{f1}")
                     else:
                         precision, recall, f1 = 0.0, 0.0, 0.0
 
+                    # input(f"precision:{precision}, recall:{recall}, f1:{f1}")
                     batch_precisions.append(precision)
                     batch_recalls.append(recall)
                     batch_f1s.append(f1)
@@ -149,11 +131,13 @@ def evaluate(dataloader, model, device, equal_subgraph_weighting, k=1):
         recall = sum(batch_recalls) / len(batch_recalls)
         f1 = sum(batch_f1s) / len(batch_f1s)
         hits_at_k = sum(batch_hits_at_k) / len(batch_hits_at_k)  # Average hits@k score
+        full_accuracy = sum(batch_full) / len(batch_full)
     else:
         accuracy = correct / total
         precision = precision_score(all_labels, all_preds, average='binary', zero_division=0)
         recall = recall_score(all_labels, all_preds, average='binary', zero_division=0)
         f1 = f1_score(all_labels, all_preds, average='binary', zero_division=0)
         hits_at_k = None # Not calculated in this mode
+        full_accuracy = None # Not calculated in this mode
 
-    return accuracy, precision, recall, f1, hits_at_k
+    return accuracy, precision, recall, f1, hits_at_k, full_accuracy

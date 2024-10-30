@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import DataLoader, Subset
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 # import torch.nn.functional as F
 import torch.nn as nn
 from src.utils.config import load_config, validate_config
@@ -10,11 +11,14 @@ from src.datasets.kgqa_dataset import KGQADataset
 from src.datasets.data_utils import collate_fn
 from src.models.gcn_model import GCNModel
 from src.models.gat_model import GATModel
+from src.models.rgcn_model import RGCNModel
+from src.models.threshold_model import ThresholdedModel
+
 
 from sentence_transformers import SentenceTransformer
 
 
-def get_model(model_name, config, question_embedding_dim):
+def get_model(model_name, config, question_embedding_dim, num_relations):
     if model_name == "GCNModel":
         return GCNModel(
             in_channels=config['in_channels'],
@@ -25,6 +29,18 @@ def get_model(model_name, config, question_embedding_dim):
             PROC_QN_EMBED_DIM=config['PROC_QN_EMBED_DIM'],
             PROC_X_DIM=config['PROC_X_DIM']
         )
+    elif model_name == "RGCNModel":
+        return RGCNModel(
+            node_dim=config['in_channels'],
+            question_dim=question_embedding_dim,
+            hidden_dim=config['hidden_channels'],
+            num_relations=num_relations,
+            output_dim=config['out_channels'],
+            num_rgcn=config['num_layers'],
+            reduced_qn_dim=config['reduced_qn_dim'],
+            reduced_node_dim=config['reduced_node_dim']
+        )
+
     elif model_name == "GATModel":
         return GATModel(
             config['in_channels'],
@@ -35,15 +51,15 @@ def get_model(model_name, config, question_embedding_dim):
     else:
         raise ValueError(f"Unknown model name: {model_name}")
 
-def get_pos_weight(dataloader):
-    pos_cum = 0
-    neg_cum = 0
-    for _, _, stacked_labels, _, _ in dataloader:
-        pos = stacked_labels.sum().item()
-        neg = stacked_labels.numel() - pos
-        pos_cum += pos
-        neg_cum += neg
-    return neg_cum, pos_cum
+# def get_pos_weight(dataloader):
+#     pos_cum = 0
+#     neg_cum = 0
+#     for _, _, stacked_labels, _, _ in dataloader:
+#         pos = stacked_labels.sum().item()
+#         neg = stacked_labels.numel() - pos
+#         pos_cum += pos
+#         neg_cum += neg
+#     return neg_cum, pos_cum
 
 
 # Run it in GNN folder
@@ -71,7 +87,7 @@ def main(config_path='../config/train_config.yaml'):
         path_to_qa=config['train_qa_data'],
         k=config['num_hops']
     )
-
+    num_relations = train_dataset.num_relations # extract the num_relation from the entire graph
     sub_train_dataset = Subset(train_dataset, list(range(config['train']['start_idx'],
                                                          config['train']['end_idx'])))
 
@@ -113,18 +129,20 @@ def main(config_path='../config/train_config.yaml'):
     job_name = config['job_name']
     equal_subgraph_weighting = config['train']['equal_subgraph_weighting']
     hits_at_k = config['train']['hits_at_k']
+    threshold_model_activate = config['threshold_model_activate']
 
-    # Initialize model, optimizer, loss function, and variables for early stopping
+    # Initialize model, optimizer, scheduler, loss function, and variables for early stopping
     model = get_model(model_name=config['model']['name'],
                       config=config['model'],
-                      question_embedding_dim=train_dataset.q_embeddings.size(-1)
+                      question_embedding_dim=train_dataset.q_embeddings.size(-1),
+                      num_relations=num_relations
                       ).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config['train']['learning_rate'])
 
-    neg_cum, pos_cum = get_pos_weight(train_loader)
-    reduction_type = 'none' if equal_subgraph_weighting else 'mean'
-    loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([neg_cum/pos_cum], device=device), reduction=reduction_type)
-    # loss_fn = F.nll_loss  # Define your loss function here (use focal_loss if desired)
+    if threshold_model_activate:
+        model = ThresholdedModel(model).to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['train']['learning_rate'])
+    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
 
     # Wrap the model for data parallelism if more than one GPU is available (outside loop for efficiency)
     if torch.cuda.device_count() > 1 and not isinstance(model, torch.nn.DataParallel):
@@ -139,22 +157,23 @@ def main(config_path='../config/train_config.yaml'):
     # Training and Evaluation Loop
     for epoch in range(config['train']['num_epochs']):
         # Train for one epoch
-        epoch_loss = train_one_epoch(model, train_loader, optimizer, loss_fn, device, equal_subgraph_weighting)
+        epoch_loss = train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weighting)
         print(f"Epoch {epoch+1}/{config['train']['num_epochs']} - Train Loss: {epoch_loss:.4f}")
 
         # Evaluate on training data (or use a separate validation set if available)
-        # train_accuracy, train_precision, train_recall, train_f1, train_hits_at_k = evaluate(train_loader, model, device, equal_subgraph_weighting, hits_at_k)
-        val_accuracy, val_precision, val_recall, val_f1, val_hits_at_k = evaluate(val_loader, model, device, equal_subgraph_weighting, hits_at_k)
-        # test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k = evaluate(test_loader, model, device, equal_subgraph_weighting, hits_at_k)
+        train_accuracy, train_precision, train_recall, train_f1, train_hits_at_k, train_full_accuracy = evaluate(train_loader, model, device, equal_subgraph_weighting, hits_at_k)
+        val_accuracy, val_precision, val_recall, val_f1, val_hits_at_k, val_full_accuracy = evaluate(val_loader, model, device, equal_subgraph_weighting, hits_at_k)
+
+        scheduler.step(val_precision)
 
         # Log metrics
-        # log_metrics(epoch, train_accuracy, train_precision, train_recall, train_f1, train_hits_at_k, log_dir = f'epoch_log/{job_name}', log_file='epoch_log/train_log.txt')
-        log_metrics(epoch, val_accuracy, val_precision, val_recall, val_f1, val_hits_at_k, log_dir = f'epoch_log/{job_name}', log_file='validation_log.txt')
-        # log_metrics(epoch, test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k, log_dir = f'epoch_log/{job_name}', log_file='epoch_log/test_log.txt')
+        log_metrics(epoch, train_accuracy, train_precision, train_recall, train_f1, train_hits_at_k, train_full_accuracy, log_dir = f'epoch_log/{job_name}', log_file='train_log.txt')
+        log_metrics(epoch, val_accuracy, val_precision, val_recall, val_f1, val_hits_at_k, val_full_accuracy, log_dir = f'epoch_log/{job_name}', log_file='validation_log.txt')
 
-        # Print validation and test results
+        # Print train and validation results
         print(f'Epoch {epoch+1}, Train Loss: {epoch_loss:.4f}')
-        print(f'Validation Accuracy: {val_accuracy:.4f}, Validation P/R/F1: {val_precision:.3f}/{val_recall:.3f}/{val_f1:.3f}')
+        print(f'Train Accuracy/Full: {train_accuracy:.4f}/{train_full_accuracy:.4f}, Train P/R/F1: {train_precision:.3f}/{train_recall:.3f}/{train_f1:.3f}')
+        print(f'Validation Accuracy/Full: {val_accuracy:.4f}/{val_full_accuracy:.4f}, Validation P/R/F1: {val_precision:.3f}/{val_recall:.3f}/{val_f1:.3f}')
 
         # Check for improvement in validation F1 for early stopping
         if val_f1 > best_val_f1:
@@ -176,9 +195,9 @@ def main(config_path='../config/train_config.yaml'):
         save_checkpoint(model, optimizer, epoch+1, config, save_dir=f'checkpoints/{job_name}')
 
     # Evaluate and save metrics of test set
-    test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k = evaluate(test_loader, model, device, equal_subgraph_weighting, hits_at_k)
-    log_metrics(epoch, test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k, log_dir = f'epoch_log/{job_name}', log_file='test_log.txt')
-    print(f'Epoch {epoch+1}, Test Accuracy: {test_accuracy:.4f}, Test P/R/F1: {test_precision:.3f}/{test_recall:.3f}/{test_f1:.3f}')
+    test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k, test_full_accuracy = evaluate(test_loader, model, device, equal_subgraph_weighting, hits_at_k)
+    log_metrics(epoch, test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k, test_full_accuracy, log_dir = f'epoch_log/{job_name}', log_file='test_log.txt')
+    print(f'Epoch {epoch+1}, Test Accuracy/Full: {test_accuracy:.4f}, {test_full_accuracy:.4f}, Test P/R/F1: {test_precision:.3f}/{test_recall:.3f}/{test_f1:.3f}')
 
     # Save the final model
     # torch.save(model.state_dict(), 'final_model.pth')

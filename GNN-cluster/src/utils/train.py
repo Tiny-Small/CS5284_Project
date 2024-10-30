@@ -2,27 +2,14 @@ import torch
 import os
 import torch_scatter
 from tqdm import tqdm
+import torch.nn as nn
+from src.models.threshold_model import ThresholdedModel, custom_loss_fn
 
-# def train_one_epoch(model, train_loader, optimizer, loss_fn, device):
-#     model.train()
-#     total_loss = 0
-#     for batched_subgraphs, question_embeddings, stacked_labels, _, _ in train_loader:
-#         batched_subgraphs = batched_subgraphs.to(device)
-#         question_embeddings = question_embeddings.to(device)
-#         stacked_labels = stacked_labels.to(device)
-
-#         optimizer.zero_grad()
-#         output = model(batched_subgraphs, question_embeddings)
-#         loss = loss_fn(output, stacked_labels)
-#         loss.backward()
-#         optimizer.step()
-
-#         total_loss += loss.item()
-#     return total_loss / len(train_loader)
-
-def train_one_epoch(model, train_loader, optimizer, loss_fn, device, equal_subgraph_weighting):
+def train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weighting):
     model.train()
     total_loss = 0
+    reduction_type = 'none' if equal_subgraph_weighting else 'mean'
+    base_loss_fn = nn.BCEWithLogitsLoss(reduction=reduction_type)
 
     for batched_subgraphs, question_embeddings, stacked_labels, _, _ in tqdm(train_loader, desc="Training Progress", leave=True):
         batched_subgraphs = batched_subgraphs.to(device)
@@ -30,22 +17,41 @@ def train_one_epoch(model, train_loader, optimizer, loss_fn, device, equal_subgr
         stacked_labels = stacked_labels.to(device)
 
         optimizer.zero_grad()
-        output = model(batched_subgraphs, question_embeddings) # Forward pass
 
-        loss = loss_fn(output, stacked_labels.float())
+        # Forward pass, handling ThresholdedModel differently
+        if isinstance(model, ThresholdedModel):
+            logits, threshold = model(batched_subgraphs, question_embeddings)  # Model returns logits and threshold
+        else:
+            logits = model(batched_subgraphs, question_embeddings)  # Regular model returns logits only
+            # threshold = 0.5
+
 
         if equal_subgraph_weighting:
+            # Calculate subgraph-level pos_weight
             num_subgraphs = len(batched_subgraphs.batch.unique())
-            nodes_per_subgraph = batched_subgraphs.batch.bincount(minlength=num_subgraphs).float()
-            # loss = loss_fn(output, stacked_labels)
+            nodes_per_subgraph = batched_subgraphs.batch.bincount(minlength=num_subgraphs).float().view(-1, 1)
+            pos_count = torch_scatter.scatter_add(stacked_labels, batched_subgraphs.batch, dim=0)
+            pos_weight = (nodes_per_subgraph / pos_count).clamp(min=1)
 
-            # Sum the losses for all nodes in each subgraph
+            # Apply the base loss function with per-node weighting
+            if isinstance(model, ThresholdedModel):
+                loss = custom_loss_fn(logits, stacked_labels.float(), threshold, base_loss_fn, pos_weight[batched_subgraphs.batch])
+            else:
+                loss = base_loss_fn(logits, stacked_labels.float()) * pos_weight[batched_subgraphs.batch]
+            # Sum the losses for all nodes in each subgraph and normalize
             loss_per_subgraph = torch_scatter.scatter_add(loss, batched_subgraphs.batch, dim=0)
-
-            # Normalize the loss per subgraph by the number of nodes in each subgraph
             loss = (loss_per_subgraph / nodes_per_subgraph).mean()
-        # else:
-        #     loss = loss.mean()
+
+        else:
+            # Calculate per-batch 'pos_weight'
+            pos_count = stacked_labels.sum(dim=0)
+            neg_count = stacked_labels.numel() - pos_count
+            pos_weight = (neg_count / pos_count).clamp(min=1)  # Avoid division by zero
+            # Apply the base_loss_fn with batch pos_weight
+            if isinstance(model, ThresholdedModel):
+                loss = custom_loss_fn(logits, stacked_labels.float(), threshold, base_loss_fn, pos_weight)
+            else:
+                loss = base_loss_fn(logits, stacked_labels.float()) * pos_weight
 
         loss.backward()
         optimizer.step()
@@ -72,13 +78,3 @@ def save_checkpoint(model, optimizer, epoch, config, save_dir='checkpoints', bes
         'optimizer_state_dict': optimizer.state_dict(),
         'config': config
     }, os.path.join(save_dir, filename))
-
-# def train(model, train_loader, optimizer, loss_fn, config, device, equal_subgraph_weighting):
-#     for epoch in range(config['train']['num_epochs']):
-#         epoch_loss = train_one_epoch(model, train_loader, optimizer, loss_fn, device, equal_subgraph_weighting)
-#         print(f"Epoch {epoch+1} - Loss: {epoch_loss:.4f}")
-
-#         # Save model checkpoint
-#         save_checkpoint(model, optimizer, epoch+1, config)
-
-#     return epoch_loss

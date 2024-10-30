@@ -1,36 +1,40 @@
 # config/train_config.yaml
-job_name: "02"
+job_name: "AdaThres_GCN_02"
 
 model:
   name: "GCNModel"
   in_channels: 64 # Node embedding dimension (i.e., node2vec embeddings)
-  hidden_channels: 64
+  hidden_channels: 512
   out_channels: 1
   num_layers: 3
-  PROC_QN_EMBED_DIM: 64 # For aaron's GCN only
-  PROC_X_DIM: 64 # For aaron's GCN only
+  reduced_qn_dim: 512 #RGCNModel
+  reduced_node_dim: 512 #RGCNModel
+  PROC_QN_EMBED_DIM: 512 # For aaron's GCN only
+  PROC_X_DIM: 512 # For aaron's GCN only
   num_heads: 8  # GAT-specific parameter
 
 train:
   batch_size: 128                      # Number of samples processed before model updates
-  num_epochs: 3                       # Total number of passes through the training dataset
+  num_epochs: 100                       # Total number of passes through the training dataset
   learning_rate: 0.001                # Step size for updating model weights during training
   start_idx: 0                        # Starting index for dataset slicing (e.g., for training subsets)
-  end_idx: 250                       # Ending index for dataset slicing (e.g., for training subsets)
+  end_idx: 2500                       # Ending index for dataset slicing (e.g., for training subsets)
   patience: 5                         # Number of epochs with no improvement before early stopping
   equal_subgraph_weighting: True      # When True, each subgraph is weighted equally regardless of size
   hits_at_k: 1                        # Top-k hits to consider for the hits@k metric during evaluation
 
 val:
   start_idx: 50000                    # Starting index for dataset slicing (e.g., for validation subsets)
-  end_idx: 50050                      # Ending index for dataset slicing (e.g., for validation subsets)
+  end_idx: 50500                      # Ending index for dataset slicing (e.g., for validation subsets)
 
 test:
   start_idx: 0                        # Starting index for dataset slicing (e.g., for testing subsets)
-  end_idx: 50                       # Ending index for dataset slicing (e.g., for testing subsets)
+  end_idx: 500                       # Ending index for dataset slicing (e.g., for testing subsets)
 
 node_embed: "../data/embeddings/ud_node2vec_embeddings.txt"  # Path to node embeddings file
 idxes: "../data/data_preparation/idxes.json"  # Path to indexes file
 train_qa_data: "../data/raw/qa_train.txt"  # Path to QA dataset
 test_qa_data: "../data/raw/qa_test.txt"
 num_hops: 3  # Number of hops for dataset configuration
+
+threshold_model_activate: True
