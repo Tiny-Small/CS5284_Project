@@ -6,8 +6,7 @@ from src.utils.config import load_config, validate_config
 from src.utils.train import train, save_checkpoint
 from src.utils.evaluation import evaluate
 from src.utils.logging import log_metrics
-from src.datasets.kgqa_dataset import KGQADataset
-from src.datasets.data_utils import collate_fn
+from src.datasets.data_utils import data_loader
 from src.models.gcn_model import GCNModel
 from src.models.gat_model import GATModel
 from sentence_transformers import SentenceTransformer
@@ -25,7 +24,9 @@ def get_model(model_name, config):
             hidden_channels=config["hidden_channels"],
             out_channels=config["out_channels"],
             num_layers=config["num_layers"],
-            question_embedding_dim=384,  # Ensure this matches the actual output dimension
+            question_embedding_dim=config[
+                "question_embedding_dim"
+            ],  # Ensure this matches the actual output dimension
         )
 
     elif model_name == "GATModel":
@@ -50,8 +51,8 @@ def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.ya
         "idxes",
         "train_qa_data",
         "test_qa_data",
-        "num_hops",
-        "sentence_transformer_path",
+        "train_ans_types" "num_hops",
+        "save_dir" "sentence_transformer_path",
     ]
     validate_config(config, required_keys)
 
@@ -62,62 +63,10 @@ def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.ya
     encoding_model = SentenceTransformer(config["sentence_transformer_path"])
 
     # Initialize Train Dataset and DataLoader
-    logging.info("Initializing training dataset and dataloader.")
-    train_dataset = KGQADataset(
-        encoding_model,
-        path_to_node_embed=config["node_embed"],
-        path_to_idxes=config["idxes"],
-        path_to_qa=config["train_qa_data"],
-        path_to_ans_types="/hpctmp/e0315913/CS5284_Project/Datasets/MetaQA_dataset/vanilla 3-hop/qa_train_qtype.txt",
-        train=True,
-        k=config["num_hops"],
-    )
-    sub_train_data = torch.utils.data.Subset(train_dataset, list(range(1000)))
-
-    train_loader = DataLoader(
-        sub_train_data,
-        batch_size=config["train"]["batch_size"],
-        collate_fn=collate_fn,
-        shuffle=True,
-    )
-
-    # Initialize Test Dataset and DataLoader
-    logging.info("Initializing test dataset and dataloader.")
-    test_dataset = KGQADataset(
-        encoding_model,
-        path_to_node_embed=config["node_embed"],
-        path_to_idxes=config["idxes"],
-        path_to_qa=config["test_qa_data"],
-        path_to_ans_types="/hpctmp/e0315913/CS5284_Project/Datasets/MetaQA_dataset/vanilla 3-hop/qa_test_qtype.txt",
-        train=False,
-        k=config["num_hops"],
-    )
-    test_subset = Subset(test_dataset, list(range(400)))
-    test_loader = DataLoader(
-        test_subset,
-        batch_size=config["train"]["batch_size"],
-        collate_fn=collate_fn,
-        shuffle=True,
-    )
-
-    # Define Evaluation DataLoader with Smaller Batch Size
-    eval_batch_size = (
-        config["eval"]["batch_size"]
-        if "eval" in config and "batch_size" in config["eval"]
-        else 16
-    )
-
-    # Smaller batch-size DataLoader for evaluation
-    train_eval_loader = DataLoader(
-        sub_train_data,
-        batch_size=eval_batch_size,
-        collate_fn=collate_fn,
-        shuffle=False,  # No need to shuffle for evaluation
-    )
-
-    test_eval_loader = DataLoader(
-        test_subset, batch_size=eval_batch_size, collate_fn=collate_fn, shuffle=False
-    )
+    logging.info("Initializing dataset and dataloaders.")
+    train_loader = data_loader("train", encoding_model, config)
+    val_loader = data_loader("val", encoding_model, config)
+    test_loader = data_loader("test", encoding_model, config)
 
     # Initialize model, optimizer, and loss function
     logging.info("Initializing model, optimizer, and loss function.")
