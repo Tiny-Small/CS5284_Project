@@ -1,45 +1,22 @@
+import os
+
 import torch
-from torch.utils.data import DataLoader, Subset
-import torch.nn.functional as F
 import logging
 from src.utils.config import load_config, validate_config
+from src.utils.model import get_model
 from src.utils.train import train, save_checkpoint
 from src.utils.evaluation import evaluate
 from src.utils.logging import log_metrics
 from src.datasets.data_utils import data_loader
-from src.models.gcn_model import GCNModel
-from src.models.gat_model import GATModel
 from sentence_transformers import SentenceTransformer
+
+os.chdir("/hpctmp/e0315913/CS5284_Project/GNN")
+
 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-def get_model(
-    model_name,
-    config,
-):
-    if model_name == "GCNModel":
-        return GCNModel(
-            in_channels=config["in_channels"],
-            hidden_channels=config["hidden_channels"],
-            out_channels=config["out_channels"],
-            num_layers=config["num_layers"],
-            question_embedding_dim=config["question_embedding_dim"],
-        )
-
-    elif model_name == "GATModel":
-        return GATModel(
-            config["in_channels"],
-            config["hidden_channels"],
-            config["out_channels"],
-            config["num_layers"],
-            config["num_heads"],
-        )
-    else:
-        raise ValueError(f"Unknown model name: {model_name}")
 
 
 def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.yaml"):
@@ -48,12 +25,16 @@ def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.ya
     required_keys = [
         "model",
         "train",
+        "val",
+        "test",
         "node_embed",
         "idxes",
         "train_qa_data",
         "test_qa_data",
-        "train_ans_types" "num_hops",
-        "save_dir" "sentence_transformer_path",
+        "train_ans_types",
+        "num_hops",
+        "save_dir",
+        "sentence_transformer_path",
     ]
     validate_config(config, required_keys)
 
@@ -101,7 +82,7 @@ def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.ya
             val_precision,
             val_recall,
             val_f1,
-            log_file=config.get("validation_log", "validation_log.txt"),
+            log_file=config.get("val_log_dir", "logs/validation_log.txt"),
         )
         log_metrics(
             epoch,
@@ -109,7 +90,7 @@ def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.ya
             test_precision,
             test_recall,
             test_f1,
-            log_file=config.get("test_log", "test_log.txt"),
+            log_file=config.get("test_log_dir", "logs/test_log.txt"),
         )
 
         # Print validation and test results

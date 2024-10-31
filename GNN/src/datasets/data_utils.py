@@ -42,7 +42,7 @@ def data_loader(dataset, encoding_model, config):
     )
 
     sub_train_data = torch.utils.data.Subset(
-        dataset, list(range(config[dataset]["start_dx"], config[dataset]["end_dx"]))
+        dataset, list(range(config[dataset]["start_idx"], config[dataset]["end_idx"]))
     )
 
     data_loader = DataLoader(

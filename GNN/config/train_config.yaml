@@ -29,6 +29,7 @@ test:
 
 node_embed: "data/embeddings/ud_node2vec_embeddings.txt" # Path to node embeddings file
 idxes: "data/processed/idxes.json" # Path to indexes file
+
 train_qa_data: "data/raw/qa_train.txt" # Path to QA dataset
 val_qa_data: "data/raw/qa_dev.txt"
 test_qa_data: "data/raw/qa_test.txt"
@@ -39,3 +40,6 @@ test_ans_types: "data/raw/qa_test_qtype.txt"
 num_hops: 3 # Number of hops for dataset configuration
 save_dir: "checkpoints"
 sentence_transformer_path: "src/models/models--sentence-transformers--multi-qa-MiniLM-L6-cos-v1/snapshots/2d981ed0b0b8591b038d472b10c38b96016aab2e"
+
+val_log_dir: "logs/validation_log.txt"
+test_log_dir: "logs/test_log.txt"
