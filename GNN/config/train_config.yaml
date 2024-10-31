@@ -1,18 +1,24 @@
 # config/train_config.yaml
 model:
   name: "GCNModel"
-  in_channels: 128
+  in_channels: 64
+  hidden_channels: 256 # Specify the number of hidden units here
   out_channels: 64
-  num_heads: 8  # GAT-specific parameter
+  num_heads: 8 # GAT-specific parameter
+  num_layers: 3 # Specify the number of layers here
 
 train:
   batch_size: 32
   num_epochs: 10
   learning_rate: 0.001
 
+eval:
+  batch_size: 16
 
-node_embed: "/hpctmp/e0315913/CS5284_Project/GNN/data/embeddings/ud_node2vec_embeddings.txt"  # Path to node embeddings file
-idxes: "/hpctmp/e0315913/CS5284_Project/data_preparation/qa_train_subgraph_idxes.json"  # Path to indexes file
-train_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN/data/raw/qa_train_qtype.txt"  # Path to QA dataset
-test_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN/data/raw/qa_test_qtype.txt" 
-num_hops: 3  # Number of hops for dataset configuration
+node_embed: "/hpctmp/e0315913/CS5284_Project/GNN/data/embeddings/ud_node2vec_embeddings.txt" # Path to node embeddings file
+idxes: "/hpctmp/e0315913/CS5284_Project/GNN/data/processed/idxes.json" # Path to indexes file
+train_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN/data/raw/qa_train.txt" # Path to QA dataset
+test_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN/data/raw/qa_test.txt"
+num_hops: 3 # Number of hops for dataset configuration
+save_dir: "/hpctmp/e0315913/CS5284_Project/GNN/checkpoints"
+sentence_transformer_path: "/hpctmp/e0315913/CS5284_Project/GNN/src/models/models--sentence-transformers--multi-qa-MiniLM-L6-cos-v1/snapshots/2d981ed0b0b8591b038d472b10c38b96016aab2e"

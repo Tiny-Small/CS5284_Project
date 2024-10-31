@@ -2,48 +2,52 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 
+
 class GCNModel(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=2):
-        """
-        Args:
-            in_channels (int): Number of input features (per node).
-            hidden_channels (int): Number of hidden units in each GCN layer.
-            out_channels (int): Number of output features (e.g., number of classes for classification).
-            num_layers (int): Number of GCN layers (default is 2).
-        """
+    def __init__(
+        self,
+        in_channels,
+        hidden_channels,
+        out_channels,
+        num_layers,
+        question_embedding_dim,
+    ):
         super(GCNModel, self).__init__()
+
+        # Define GCN layers with the first layer concatenating question embeddings
         self.convs = torch.nn.ModuleList()
-        self.convs.append(GCNConv(in_channels, hidden_channels))
+        self.convs.append(
+            GCNConv(in_channels + question_embedding_dim, hidden_channels)
+        )
+
+        # Define hidden layers
         for _ in range(num_layers - 2):
             self.convs.append(GCNConv(hidden_channels, hidden_channels))
-        self.convs.append(GCNConv(hidden_channels, out_channels))
 
-        # Optional: Add a linear layer to process question embeddings
-        self.question_fc = torch.nn.Linear(hidden_channels, hidden_channels)
+        # Output layer should output one value per node for binary classification
+        self.convs.append(GCNConv(hidden_channels, 1))
 
-    def forward(self, data, question_embeddings):
-        """
-        Forward pass through the GCN.
-        
-        Args:
-            data (torch_geometric.data.Data): A graph data object containing x (node features) and edge_index (graph edges).
-            question_embeddings: 
-        
-        Returns:
-            torch.Tensor: Output node embeddings or class scores.
-        """
-        x, edge_index = data.x, data.edge_index
+    def forward(self, batched_subgraphs, question_embeddings):
+        # Assuming question_embeddings shape: [batch_size, embedding_dim]
+        question_emb_expanded = []
 
-        # Process graph with GCN layers
+        # Expand and concatenate question embedding to each node in each subgraph
+        for i, subgraph in enumerate(batched_subgraphs.to_data_list()):
+            expanded_q_emb = (
+                question_embeddings[i].unsqueeze(0).expand(subgraph.x.size(0), -1)
+            )
+            subgraph.x = torch.cat((subgraph.x, expanded_q_emb), dim=1)
+            question_emb_expanded.append(subgraph.x)
+
+        # Concatenate all node features across subgraphs into a single batch
+        batched_subgraphs.x = torch.cat(question_emb_expanded, dim=0)
+        x, edge_index = batched_subgraphs.x, batched_subgraphs.edge_index
+
+        # Pass through GCN layers
         for conv in self.convs[:-1]:
-            x = conv(x, edge_index)
-            x = F.relu(x)
-        
-        # Output layer
-        x = self.convs[-1](x, edge_index)
-        
-        # Combine question embeddings with graph features
-        question_embeds = self.question_fc(question_embeddings).unsqueeze(1)
-        x = x + question_embeds  # Example: add question embeddings to node features
+            x = F.relu(conv(x, edge_index))  # Apply ReLU to all layers except the last
 
-        return F.log_softmax(x, dim=1)
+        # Final GCN layer without activation (output is logits for BCEWithLogitsLoss)
+        x = self.convs[-1](x, edge_index)
+        # Return only the output logits tensor (it should now be [N, 1])
+        return x.squeeze(-1)  # Ensure that this returns [N]
