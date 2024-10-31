@@ -17,16 +17,17 @@ logging.basicConfig(
 )
 
 
-def get_model(model_name, config):
+def get_model(
+    model_name,
+    config,
+):
     if model_name == "GCNModel":
         return GCNModel(
             in_channels=config["in_channels"],
             hidden_channels=config["hidden_channels"],
             out_channels=config["out_channels"],
             num_layers=config["num_layers"],
-            question_embedding_dim=config[
-                "question_embedding_dim"
-            ],  # Ensure this matches the actual output dimension
+            question_embedding_dim=config["question_embedding_dim"],
         )
 
     elif model_name == "GATModel":
@@ -84,13 +85,13 @@ def main(config_path="/hpctmp/e0315913/CS5284_Project/GNN/config/train_config.ya
         logging.info(f"Epoch {epoch+1} - Training Loss: {epoch_loss:.4f}")
 
         # Evaluate on training and test sets with smaller batches
-        logging.info("Evaluating on training data.")
+        logging.info("Evaluating on val data.")
         val_accuracy, val_precision, val_recall, val_f1 = evaluate(
-            train_eval_loader, model, device
+            val_loader, model, device
         )
         logging.info("Evaluating on test data.")
         test_accuracy, test_precision, test_recall, test_f1 = evaluate(
-            test_eval_loader, model, device
+            test_loader, model, device
         )
 
         # Log metrics
