@@ -1,12 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, RGCNConv
+from torch_geometric.nn import GCNConv
+from src.models.alpha import Output
+# from models.alpha import Output
 
 class GCNModel(nn.Module):
-    def __init__(self, in_channels, question_embedding_dim, hidden_channels, out_channels, num_GCNCov, PROC_QN_EMBED_DIM, PROC_X_DIM):
+    def __init__(self, in_channels, question_embedding_dim, hidden_channels, out_channels, num_GCNCov, PROC_QN_EMBED_DIM, PROC_X_DIM, output_embedding):
         super(GCNModel, self).__init__()
         self.num_GCNCov = num_GCNCov
+        self.output_embedding = output_embedding
+        if self.output_embedding:
+            out_channels = question_embedding_dim # Set output_dim to question_dim if outputting embeddings
+
         # PROC_QN_EMBED_DIM: Reduced question embedding dimension
         # PROC_X_DIM: Reduced node embedding dimension
 
@@ -30,13 +36,14 @@ class GCNModel(nn.Module):
     def forward(self, data, question_embedding):
         # Graph propagation through GCN layers
         x, edge_index, batch = data.x, data.edge_index, data.batch
+        initial_question_embedding_expanded = question_embedding[batch]
 
         for gcn_layer in self.gcn_layers:
             x = gcn_layer(x, edge_index)
-            x = F.relu(x)  # Apply ReLU after each GCN layer
+            x = F.elu(x)  # Apply ReLU after each GCN layer
 
         # Reduce the question embedding
-        question_embedding = F.relu(self.fc0(question_embedding))  # Shape: (batch_size, PROC_QN_EMBED_DIM)
+        question_embedding = F.elu(self.fc0(question_embedding))  # Shape: (batch_size, PROC_QN_EMBED_DIM)
 
         # Broadcast question embedding to match each node in the batch
         question_embedding_expanded = question_embedding[batch]  # Shape: (num_nodes_total, PROC_QN_EMBED_DIM)
@@ -45,7 +52,11 @@ class GCNModel(nn.Module):
         combined = torch.cat([x, question_embedding_expanded], dim=1)  # Shape: (num_nodes_total, PROC_X_DIM + PROC_QN_EMBED_DIM)
 
         # Apply FCL node-wise (same FCL for each node, which outputs per node predictions)
-        x = F.relu(self.fc1(combined))  # Shape: (num_nodes_total, 8)
+        x = F.elu(self.fc1(combined))  # Shape: (num_nodes_total, 8)
         x = self.fc2(x)                 # Shape: (num_nodes_total, out_channels)
 
-        return x
+        # Return logits or embeddings based on the flag
+        if self.output_embedding:
+            return Output(node_embedding=x, question_embedding_expanded=initial_question_embedding_expanded)
+        else:
+            return x

@@ -1,8 +1,6 @@
 import torch
 from torch.utils.data import DataLoader, Subset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-# import torch.nn.functional as F
-import torch.nn as nn
 from src.utils.config import load_config, validate_config
 from src.utils.train import train_one_epoch, save_checkpoint
 from src.utils.evaluation import evaluate
@@ -13,7 +11,16 @@ from src.models.gcn_model import GCNModel
 from src.models.gat_model import GATModel
 from src.models.rgcn_model import RGCNModel
 from src.models.threshold_model import ThresholdedModel
-
+# from utils.config import load_config, validate_config
+# from utils.train import train_one_epoch, save_checkpoint
+# from utils.evaluation import evaluate
+# from utils.logging import log_metrics, save_config
+# from datasets.kgqa_dataset import KGQADataset
+# from datasets.data_utils import collate_fn
+# from models.gcn_model import GCNModel
+# from models.gat_model import GATModel
+# from models.rgcn_model import RGCNModel
+# from models.threshold_model import ThresholdedModel
 
 from sentence_transformers import SentenceTransformer
 
@@ -27,7 +34,8 @@ def get_model(model_name, config, question_embedding_dim, num_relations):
             out_channels=config['out_channels'],
             num_GCNCov=config['num_layers'],
             PROC_QN_EMBED_DIM=config['PROC_QN_EMBED_DIM'],
-            PROC_X_DIM=config['PROC_X_DIM']
+            PROC_X_DIM=config['PROC_X_DIM'],
+            output_embedding=config['output_embedding']
         )
     elif model_name == "RGCNModel":
         return RGCNModel(
@@ -38,9 +46,9 @@ def get_model(model_name, config, question_embedding_dim, num_relations):
             output_dim=config['out_channels'],
             num_rgcn=config['num_layers'],
             reduced_qn_dim=config['reduced_qn_dim'],
-            reduced_node_dim=config['reduced_node_dim']
+            reduced_node_dim=config['reduced_node_dim'],
+            output_embedding=config['output_embedding']
         )
-
     elif model_name == "GATModel":
         return GATModel(
             config['in_channels'],
@@ -50,17 +58,6 @@ def get_model(model_name, config, question_embedding_dim, num_relations):
         )
     else:
         raise ValueError(f"Unknown model name: {model_name}")
-
-# def get_pos_weight(dataloader):
-#     pos_cum = 0
-#     neg_cum = 0
-#     for _, _, stacked_labels, _, _ in dataloader:
-#         pos = stacked_labels.sum().item()
-#         neg = stacked_labels.numel() - pos
-#         pos_cum += pos
-#         neg_cum += neg
-#     return neg_cum, pos_cum
-
 
 # Run it in GNN folder
 def main(config_path='../config/train_config.yaml'):
@@ -125,11 +122,12 @@ def main(config_path='../config/train_config.yaml'):
         shuffle=True
     )
 
-    # Load job_name, equal_subgraph_weighting, and hits_at_k from config
+    # Load job_name, equal_subgraph_weighting, threshold_value, and hits_at_k from config
     job_name = config['job_name']
     equal_subgraph_weighting = config['train']['equal_subgraph_weighting']
     hits_at_k = config['train']['hits_at_k']
     threshold_model_activate = config['threshold_model_activate']
+    threshold_value = config['threshold_value']
 
     # Initialize model, optimizer, scheduler, loss function, and variables for early stopping
     model = get_model(model_name=config['model']['name'],
@@ -161,27 +159,31 @@ def main(config_path='../config/train_config.yaml'):
         print(f"Epoch {epoch+1}/{config['train']['num_epochs']} - Train Loss: {epoch_loss:.4f}")
 
         # Evaluate on training data (or use a separate validation set if available)
-        train_accuracy, train_precision, train_recall, train_f1, train_hits_at_k, train_full_accuracy = evaluate(train_loader, model, device, equal_subgraph_weighting, hits_at_k)
-        val_accuracy, val_precision, val_recall, val_f1, val_hits_at_k, val_full_accuracy = evaluate(val_loader, model, device, equal_subgraph_weighting, hits_at_k)
+        train_metrics = evaluate(train_loader, model, device, equal_subgraph_weighting, threshold_value, hits_at_k)
+        val_metrics = evaluate(val_loader, model, device, equal_subgraph_weighting, threshold_value, hits_at_k)
 
-        scheduler.step(val_precision)
+        scheduler.step(val_metrics.precision)
 
         # Log metrics
-        log_metrics(epoch, train_accuracy, train_precision, train_recall, train_f1, train_hits_at_k, train_full_accuracy, log_dir = f'epoch_log/{job_name}', log_file='train_log.txt')
-        log_metrics(epoch, val_accuracy, val_precision, val_recall, val_f1, val_hits_at_k, val_full_accuracy, log_dir = f'epoch_log/{job_name}', log_file='validation_log.txt')
+        log_metrics(epoch, train_metrics.accuracy, train_metrics.precision, train_metrics.recall, train_metrics.f1,
+                    train_metrics.hits_at_k, train_metrics.full_accuracy,
+                    log_dir = f'epoch_log/{job_name}', log_file='train_log.txt')
+        log_metrics(epoch, val_metrics.accuracy, val_metrics.precision, val_metrics.recall, val_metrics.f1,
+                    val_metrics.hits_at_k, val_metrics.full_accuracy,
+                    log_dir = f'epoch_log/{job_name}', log_file='validation_log.txt')
 
         # Print train and validation results
         print(f'Epoch {epoch+1}, Train Loss: {epoch_loss:.4f}')
-        print(f'Train Accuracy/Full: {train_accuracy:.4f}/{train_full_accuracy:.4f}, Train P/R/F1: {train_precision:.3f}/{train_recall:.3f}/{train_f1:.3f}')
-        print(f'Validation Accuracy/Full: {val_accuracy:.4f}/{val_full_accuracy:.4f}, Validation P/R/F1: {val_precision:.3f}/{val_recall:.3f}/{val_f1:.3f}')
+        print(f'Train Accuracy/Full: {train_metrics.accuracy:.4f}/{train_metrics.full_accuracy:.4f}, Train P/R/F1: {train_metrics.precision:.3f}/{train_metrics.recall:.3f}/{train_metrics.f1:.3f}')
+        print(f'Validation Accuracy/Full: {val_metrics.accuracy:.4f}/{val_metrics.full_accuracy:.4f}, Validation P/R/F1: {val_metrics.precision:.3f}/{val_metrics.recall:.3f}/{val_metrics.f1:.3f}')
 
         # Check for improvement in validation F1 for early stopping
-        if val_f1 > best_val_f1:
-            best_val_f1 = val_f1
+        if val_metrics.f1 > best_val_f1:
+            best_val_f1 = val_metrics.f1
             patience_counter = 0  # Reset counter if improvement
             # Save best model
             save_checkpoint(model, optimizer, epoch+1, config, save_dir=f'checkpoints/{job_name}', best=True)
-            print(f"Validation F1 improved to {val_f1:.4f}. Model checkpoint saved.")
+            print(f"Validation F1 improved to {val_metrics.f1:.4f}. Model checkpoint saved.")
         else:
             patience_counter += 1
             print(f"No improvement in validation F1 for {patience_counter} epochs.")
@@ -195,13 +197,11 @@ def main(config_path='../config/train_config.yaml'):
         save_checkpoint(model, optimizer, epoch+1, config, save_dir=f'checkpoints/{job_name}')
 
     # Evaluate and save metrics of test set
-    test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k, test_full_accuracy = evaluate(test_loader, model, device, equal_subgraph_weighting, hits_at_k)
-    log_metrics(epoch, test_accuracy, test_precision, test_recall, test_f1, test_hits_at_k, test_full_accuracy, log_dir = f'epoch_log/{job_name}', log_file='test_log.txt')
-    print(f'Epoch {epoch+1}, Test Accuracy/Full: {test_accuracy:.4f}, {test_full_accuracy:.4f}, Test P/R/F1: {test_precision:.3f}/{test_recall:.3f}/{test_f1:.3f}')
-
-    # Save the final model
-    # torch.save(model.state_dict(), 'final_model.pth')
-    # print("Training completed and final model saved.")
+    test_metrics = evaluate(test_loader, model, device, equal_subgraph_weighting, hits_at_k)
+    log_metrics(epoch, test_metrics.accuracy, test_metrics.precision, test_metrics.recall, test_metrics.f1,
+                test_metrics.hits_at_k, test_metrics.full_accuracy,
+                log_dir = f'epoch_log/{job_name}', log_file='test_log.txt')
+    print(f'Epoch {epoch+1}, Test Accuracy/Full: {test_metrics.accuracy:.4f}, {test_metrics.full_accuracy:.4f}, Test P/R/F1: {test_metrics.precision:.3f}/{test_metrics.recall:.3f}/{test_metrics.f1:.3f}')
 
 if __name__ == '__main__':
     main()

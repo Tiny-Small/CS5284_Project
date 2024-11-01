@@ -1,35 +1,36 @@
 # config/train_config.yaml
-job_name: "AdaThres_GCN_02"
+job_name: "Test_02"
 
 model:
   name: "GCNModel"
-  in_channels: 64 # Node embedding dimension (i.e., node2vec embeddings)
-  hidden_channels: 512
-  out_channels: 1
-  num_layers: 3
-  reduced_qn_dim: 512 #RGCNModel
-  reduced_node_dim: 512 #RGCNModel
-  PROC_QN_EMBED_DIM: 512 # For aaron's GCN only
-  PROC_X_DIM: 512 # For aaron's GCN only
-  num_heads: 8  # GAT-specific parameter
+  in_channels: 64          # Dimension of node embeddings (e.g., node2vec)
+  hidden_channels: 128
+  out_channels: 1          # Forever 1; Unused output_embedding is True
+  num_layers: 2            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
+  reduced_qn_dim: 128        # For RGCNModel
+  reduced_node_dim: 128      # For RGCNModel
+  PROC_QN_EMBED_DIM: 128     # For GCNModel only
+  PROC_X_DIM: 128            # For GCNModel only
+  num_heads: 8             # GAT-specific
+  output_embedding: True   # If true, outputs node embeddings
 
 train:
-  batch_size: 128                      # Number of samples processed before model updates
-  num_epochs: 100                       # Total number of passes through the training dataset
-  learning_rate: 0.001                # Step size for updating model weights during training
-  start_idx: 0                        # Starting index for dataset slicing (e.g., for training subsets)
-  end_idx: 2500                       # Ending index for dataset slicing (e.g., for training subsets)
-  patience: 5                         # Number of epochs with no improvement before early stopping
-  equal_subgraph_weighting: True      # When True, each subgraph is weighted equally regardless of size
-  hits_at_k: 1                        # Top-k hits to consider for the hits@k metric during evaluation
+  batch_size: 32                    # Number of samples processed before model updates
+  num_epochs: 100                    # Total number of passes through the training dataset
+  learning_rate: 0.001            # Step size for updating model weights during training
+  start_idx: 0                     # Starting index for dataset slicing (e.g., for training subsets)
+  end_idx: 2000                       # Ending index for dataset slicing (e.g., for training subsets)
+  patience: 5                      # Number of epochs with no improvement before early stopping
+  equal_subgraph_weighting: True   # When True, each subgraph is weighted equally regardless of size
+  hits_at_k: 3                     # Top-k hits to consider for the hits@k metric during evaluation
 
 val:
-  start_idx: 50000                    # Starting index for dataset slicing (e.g., for validation subsets)
-  end_idx: 50500                      # Ending index for dataset slicing (e.g., for validation subsets)
+  start_idx: 50000                 # Starting index for dataset slicing (e.g., for validation subsets)
+  end_idx: 50200                   # Ending index for dataset slicing (e.g., for validation subsets)
 
 test:
-  start_idx: 0                        # Starting index for dataset slicing (e.g., for testing subsets)
-  end_idx: 500                       # Ending index for dataset slicing (e.g., for testing subsets)
+  start_idx: 0                     # Starting index for dataset slicing (e.g., for testing subsets)
+  end_idx: 200                       # Ending index for dataset slicing (e.g., for testing subsets)
 
 node_embed: "../data/embeddings/ud_node2vec_embeddings.txt"  # Path to node embeddings file
 idxes: "../data/data_preparation/idxes.json"  # Path to indexes file
@@ -37,4 +38,17 @@ train_qa_data: "../data/raw/qa_train.txt"  # Path to QA dataset
 test_qa_data: "../data/raw/qa_test.txt"
 num_hops: 3  # Number of hops for dataset configuration
 
-threshold_model_activate: True
+threshold_model_activate: True  # Wraps GNN with threshold model if true
+threshold_value: 0            # Threshold value used when threshold model is inactive
+
+##### checks #####
+# output_embedding | equal_subgraph_weighting | threshold_model_activate
+# True | True | True (done:   11)
+# True | True | False (done:  11)
+# True | False | True (done:  11)
+# True | False | False (done: 11)
+# False | True | True (done:  11)
+# False | True | False (done: 11)
+# False | False | True (done: 11)
+# False | False | False (done:11)
+#### complete ####
