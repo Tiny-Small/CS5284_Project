@@ -115,6 +115,8 @@ class KGQADataset(torch.utils.data.Dataset):
         # Since we now have more edges (two for each undirected edge), we concat them
         undirected_edge_attr = torch.cat([edge_attr, edge_attr], dim=0) # comment out if want directed
 
+        # Data(edge_index=undirected_edge_index, edge_attr=undirected_edge_attr, num_nodes=len(entity_to_idx))
+        # Data(edge_index=edge_index, edge_attr=edge_attr, num_nodes=len(entity_to_idx))
         return Data(edge_index=undirected_edge_index, edge_attr=undirected_edge_attr, num_nodes=len(entity_to_idx))
 
     def load_node2vec_embeddings(self, file_path, embedding_dim=64):

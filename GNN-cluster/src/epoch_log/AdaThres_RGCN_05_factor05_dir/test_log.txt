@@ -1,0 +1,1 @@
+Epoch 20 - Accuracy: 1.0000, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: nan, full_accuracy: 0.9977 

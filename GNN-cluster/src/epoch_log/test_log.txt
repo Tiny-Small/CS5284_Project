@@ -1,0 +1,17 @@
+Epoch 1 - Accuracy: 0.6898, Precision: 0.0055, Recall: 0.7086, F1: 0.0107, Hits_at_k: 0.0000 
+Epoch 2 - Accuracy: 0.6520, Precision: 0.0106, Recall: 0.7666, F1: 0.0202, Hits_at_k: 0.0000 
+Epoch 3 - Accuracy: 0.6449, Precision: 0.0096, Recall: 0.7870, F1: 0.0184, Hits_at_k: 0.0005 
+Epoch 4 - Accuracy: 0.6947, Precision: 0.0123, Recall: 0.7475, F1: 0.0234, Hits_at_k: 0.0000 
+Epoch 5 - Accuracy: 0.7044, Precision: 0.0136, Recall: 0.7463, F1: 0.0256, Hits_at_k: 0.0000 
+Epoch 6 - Accuracy: 0.7348, Precision: 0.0151, Recall: 0.7222, F1: 0.0283, Hits_at_k: 0.0000 
+Epoch 7 - Accuracy: 0.7364, Precision: 0.0158, Recall: 0.7299, F1: 0.0296, Hits_at_k: 0.0000 
+Epoch 8 - Accuracy: 0.7019, Precision: 0.0141, Recall: 0.7753, F1: 0.0266, Hits_at_k: 0.0000 
+Epoch 9 - Accuracy: 0.7086, Precision: 0.0133, Recall: 0.7743, F1: 0.0252, Hits_at_k: 0.0000 
+Epoch 10 - Accuracy: 0.7066, Precision: 0.0131, Recall: 0.7812, F1: 0.0249, Hits_at_k: 0.0000 
+Epoch 11 - Accuracy: 0.7752, Precision: 0.0206, Recall: 0.7284, F1: 0.0378, Hits_at_k: 0.0000 
+Epoch 12 - Accuracy: 0.7831, Precision: 0.0204, Recall: 0.7257, F1: 0.0375, Hits_at_k: 0.0000 
+Epoch 13 - Accuracy: 0.7093, Precision: 0.0137, Recall: 0.7978, F1: 0.0259, Hits_at_k: 0.0000 
+Epoch 14 - Accuracy: 0.6984, Precision: 0.0126, Recall: 0.8094, F1: 0.0241, Hits_at_k: 0.0000 
+Epoch 15 - Accuracy: 0.7574, Precision: 0.0151, Recall: 0.7679, F1: 0.0285, Hits_at_k: 0.0000 
+Epoch 16 - Accuracy: 0.6952, Precision: 0.0102, Recall: 0.8222, F1: 0.0198, Hits_at_k: 0.0000 
+Epoch 17 - Accuracy: 0.7271, Precision: 0.0133, Recall: 0.7995, F1: 0.0253, Hits_at_k: 0.0000 

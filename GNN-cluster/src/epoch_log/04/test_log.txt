@@ -1,0 +1,1 @@
+Epoch 10 - Accuracy: 0.0026, Precision: 0.0026, Recall: 1.0000, F1: 0.0051, Hits_at_k: 0.0000 

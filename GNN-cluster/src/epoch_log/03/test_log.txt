@@ -1,0 +1,1 @@
+Epoch 19 - Accuracy: 0.7896, Precision: 0.0175, Recall: 0.7558, F1: 0.0325, Hits_at_k: 0.0004 
