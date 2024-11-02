@@ -17,7 +17,7 @@ def threshold_based_candidates(output, threshold=0.8):
         # Calculate cosine similarity for each node
         similarity_scores = F.cosine_similarity(output.node_embedding, output.question_embedding_expanded, dim=1)
         # Initialize a mask to identify candidates above the threshold
-        candidates_mask = similarity_scores > threshold
+        candidates_mask = torch.sigmoid(similarity_scores) > threshold
     # else:
     #     print("Output lacks expected attributes.")
 
