@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from src.models.alpha import Output
-# from models.alpha import Output
+# from src.models.alpha import Output
+from models.alpha import Output
 
 class GCNModel(nn.Module):
     def __init__(self, in_channels, question_embedding_dim, hidden_channels, out_channels, num_GCNCov, PROC_QN_EMBED_DIM, PROC_X_DIM, output_embedding):

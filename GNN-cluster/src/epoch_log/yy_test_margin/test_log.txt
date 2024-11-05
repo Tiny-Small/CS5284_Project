@@ -1,0 +1,1 @@
+Epoch 8 - Accuracy: 0.1190, Precision: 0.1190, Recall: 1.0000, F1: 0.1970, Hits_at_k: 0.0972, full_accuracy: 0.0000 

@@ -1,0 +1,12 @@
+Epoch 1 - Accuracy: 0.1368, Precision: 0.1368, Recall: 1.0000, F1: 0.2275, Hits_at_k: 0.4583, full_accuracy: 0.0000 
+Epoch 2 - Accuracy: 0.1477, Precision: 0.1477, Recall: 1.0000, F1: 0.2443, Hits_at_k: 0.5278, full_accuracy: 0.0000 
+Epoch 3 - Accuracy: 0.1502, Precision: 0.1502, Recall: 1.0000, F1: 0.2490, Hits_at_k: 0.5417, full_accuracy: 0.0000 
+Epoch 4 - Accuracy: 0.1404, Precision: 0.1404, Recall: 1.0000, F1: 0.2324, Hits_at_k: 0.4167, full_accuracy: 0.0000 
+Epoch 1 - Accuracy: 0.1368, Precision: 0.1368, Recall: 1.0000, F1: 0.2275, Hits_at_k: 0.4583, full_accuracy: 0.0000 
+Epoch 2 - Accuracy: 0.1477, Precision: 0.1477, Recall: 1.0000, F1: 0.2443, Hits_at_k: 0.5278, full_accuracy: 0.0000 
+Epoch 3 - Accuracy: 0.1502, Precision: 0.1502, Recall: 1.0000, F1: 0.2490, Hits_at_k: 0.5417, full_accuracy: 0.0000 
+Epoch 4 - Accuracy: 0.1404, Precision: 0.1404, Recall: 1.0000, F1: 0.2324, Hits_at_k: 0.4167, full_accuracy: 0.0000 
+Epoch 5 - Accuracy: 0.1438, Precision: 0.1438, Recall: 1.0000, F1: 0.2404, Hits_at_k: 0.5139, full_accuracy: 0.0000 
+Epoch 6 - Accuracy: 0.1454, Precision: 0.1453, Recall: 1.0000, F1: 0.2376, Hits_at_k: 0.4306, full_accuracy: 0.0000 
+Epoch 7 - Accuracy: 0.1451, Precision: 0.1451, Recall: 1.0000, F1: 0.2418, Hits_at_k: 0.5139, full_accuracy: 0.0000 
+Epoch 8 - Accuracy: 0.1515, Precision: 0.1515, Recall: 1.0000, F1: 0.2480, Hits_at_k: 0.4722, full_accuracy: 0.0000 

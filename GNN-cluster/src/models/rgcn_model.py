@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import RGCNConv
-from src.models.alpha import Output
-# from models.alpha import Output
+# from src.models.alpha import Output
+from models.alpha import Output
 
 class RGCNModel(torch.nn.Module):
     def __init__(self, node_dim, question_dim, hidden_dim, num_relations, output_dim, num_rgcn, reduced_qn_dim, reduced_node_dim, output_embedding):

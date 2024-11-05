@@ -166,7 +166,7 @@ def adaptive_threshold_penalty(
     return adaptive_penalty
 
 
-def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs, equal_subgraph_weighting):
+def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs, equal_subgraph_weighting, contrastive_loss_type, margin, temperature, reduction_type):
 
     # Check if full_output contains threshold (FullOutput) or not (Output)
     output = full_output.output if isinstance(full_output, FullOutput) else full_output
@@ -180,9 +180,26 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
         pos_weight = ((nodes_per_subgraph - pos_count) / pos_count).clamp(min=1)[batched_subgraphs.batch].squeeze()
 
         # Calculate loss based on whether output is embedding or logits
+        # contrastive loss
         if isinstance(output, Output):
-            target = 2 * stacked_labels.squeeze().float() - 1
-            base_loss = base_loss_fn(output.node_embedding, output.question_embedding_expanded, target) * pos_weight
+            if contrastive_loss_type == 'margin':
+                # margin-based contrastive loss
+                # encourages embeddings within this margin to move closer and those outside it to move further away
+                base_loss = base_loss_fn(output.question_embedding_expanded, output.node_embedding, stacked_labels.squeeze(), reduction_type, margin) * pos_weight
+            
+            elif contrastive_loss_type == 'MNRL':
+                # MNRL contrastive loss
+                # allows all batch elements to act as negative examples as well
+                base_loss = base_loss_fn(output.question_embedding_expanded, output.node_embedding, reduction_type, temperature) * pos_weight
+
+            # anything else, by default uses default
+            else:
+                # converts into +1 (answer) and -1 (non-answer),
+                # minimize the cosine distance between "similar" pairs of embeddings while maximizing it between "dissimilar" pairs
+                target = 2 * stacked_labels.squeeze().float() - 1
+                base_loss = base_loss_fn(output.node_embedding, output.question_embedding_expanded, target) * pos_weight
+        
+        # binary classification cross entropy loss
         else:
             pos_weight = pos_weight.view(-1,1)
             base_loss = base_loss_fn(output, stacked_labels.float()) * pos_weight
@@ -190,6 +207,7 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
         # Sum and normalize by subgraph
         loss_per_subgraph = torch_scatter.scatter_add(base_loss, batched_subgraphs.batch, dim=0)
         loss = (loss_per_subgraph / nodes_per_subgraph).mean()
+        
     else:
         # batch-level pos_weight
         pos_count = stacked_labels.sum()
@@ -209,3 +227,102 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
         threshold_penalty = adaptive_threshold_penalty(output, threshold, stacked_labels.float(), batched_subgraphs, equal_subgraph_weighting)
         return loss + threshold_penalty
     return loss
+
+# margin-based contrastive loss
+def margin_contrastive(query_embeddings, embeddings, labels, reduction, margin=0.5):
+    """
+    Computes margin-based contrastive cosine embedding loss for multiple positives and negatives.
+
+    For positive examples, loss is minimized when cos(x,y) is close to 1
+
+    For negative examples, the cosine similarity should ideally be less than the specified margin,
+    meaning the embeddings should be dissimilar by at least that amount.
+    The margin enforces a minimum distance by penalizing cosine similarities that exceed it.
+
+    If you set margin = 0.5, the model will push the cosine similarity below 0.5 for negative pairs
+    while encouraging positive pairs to have high similarity.
+    """
+    # Separate positive and negative embeddings based on labels
+    positive_embeddings = embeddings[labels == 1]
+    positive_corresponding_query_embeddings = query_embeddings[labels == 1]
+    negative_embeddings = embeddings[labels == 0]
+    negative_corresponding_query_embeddings = query_embeddings[labels == 0]
+
+    # Positive loss: Minimize distance between query and positive samples (target = 1)
+    if len(positive_embeddings) > 0:
+        positive_loss = F.cosine_embedding_loss(
+            positive_corresponding_query_embeddings,
+            positive_embeddings,
+            torch.ones(len(positive_embeddings)).to(query_embeddings.device),
+            reduction=reduction
+        )
+    else:
+        positive_loss = torch.tensor(0.0, device=query_embeddings.device)
+
+    # Negative loss: Maximize distance for query and negative samples (target = -1)
+    if len(negative_embeddings) > 0:
+        negative_loss = F.cosine_embedding_loss(
+            negative_corresponding_query_embeddings,
+            negative_embeddings,
+            torch.full((len(negative_embeddings),), -1.0).to(query_embeddings.device),
+            margin=margin,
+            reduction=reduction
+        )
+    else:
+        negative_loss = torch.tensor(0.0, device=query_embeddings.device)
+
+    # Combine losses
+    if reduction == "mean":
+        total_loss = (positive_loss.mean() + negative_loss.mean()) / 2 # is this correct? maybe not used
+    else:
+        # none
+        total_loss = torch.cat([positive_loss, negative_loss], dim=0)
+    
+    return total_loss
+
+# MNRL contrastive loss
+def mnrl_contrastive(question_embedding_expanded, node_embedding, reduction_type, temperature=0.05):
+    """
+    Computes a contrastive loss with implicit negatives within the batch and explicit negatives.
+
+    This setup leverages implicit negatives in similarity_matrix,
+    where each off-diagonal entry serves as a "negative" for each query-node pair.
+    
+    Each item in the batch acts as a negative for every other item,
+    ensuring each query only considers its paired node as a positive.
+
+    The loss function applies cross-entropy to encourage the diagonal values to be the highest
+    (i.e., most similar).
+    """
+    # Compute cosine similarity matrix (batch_size, batch_size)
+    similarity_matrix = F.cosine_similarity(question_embedding_expanded.unsqueeze(1), node_embedding.unsqueeze(0), dim=2)
+
+    # Scale similarities by temperature
+    similarity_matrix /= temperature
+
+    # Apply softmax to get probabilities, focusing on the diagonal
+    # target labels are along the diagonal
+    diagonal_labels = torch.arange(similarity_matrix.size(0)).to(node_embedding.device)
+    loss = F.cross_entropy(similarity_matrix, diagonal_labels, reduction=reduction_type)
+
+    return loss
+
+    # # Separate positive and negative node embeddings
+    # positive_nodes = node_embedding[labels == 1]
+    # negative_nodes = node_embedding[labels == 0]
+    # positive_q_embeddings = question_embedding_expanded[labels == 1]
+    # negative_q_embeddings = question_embedding_expanded[labels == 0]
+
+    # # Implicit negative similarities for all pairs (question to node)
+    # similarity_matrix = F.cosine_similarity(question_embedding_expanded.unsqueeze(1), node_embedding.unsqueeze(0), dim=2) / temperature
+    # labels_for_implicit = torch.arange(similarity_matrix.size(0)).to(node_embedding.device)
+    # implicit_negative_loss = F.cross_entropy(similarity_matrix, labels_for_implicit, reduction=reduction_type)
+
+    # # Explicit positive and negative loss
+    # cosine_loss_fn = CosineEmbeddingLoss(margin=margin, reduction=reduction_type)
+    # positive_loss = cosine_loss_fn(positive_q_embeddings, positive_nodes, torch.ones(positive_nodes.size(0)).to(node_embedding.device))
+    # negative_loss = cosine_loss_fn(negative_q_embeddings, negative_nodes, torch.full((negative_nodes.size(0),), -1.0).to(node_embedding.device))
+
+    # # Combine the losses
+    # total_loss = implicit_negative_loss + positive_loss + negative_loss
+    # return total_loss
