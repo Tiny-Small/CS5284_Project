@@ -3,19 +3,34 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.models.threshold_model import ThresholdedModel
-from src.models.alpha import custom_loss_fn
-# from models.threshold_model import ThresholdedModel
-# from models.alpha import custom_loss_fn
+# from src.models.threshold_model import ThresholdedModel
+# from src.models.alpha import custom_loss_fn
+from models.threshold_model import ThresholdedModel
+from models.alpha import custom_loss_fn, margin_contrastive, mnrl_contrastive
 
-def train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weighting):
+def train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weighting, contrastive_loss_type, margin, temperature):
     model.train()
     total_loss = 0
 
     # Base loss function selection
     reduction_type = 'none' if equal_subgraph_weighting else 'mean'
+    
+    # contrastive loss
     if hasattr(model, 'output_embedding') and model.output_embedding:
-        base_loss_fn = lambda x, y, t: F.cosine_embedding_loss(x, y, t, reduction=reduction_type)
+        if contrastive_loss_type == 'margin':
+            # margin-based contrastive loss
+            # encourages embeddings within this margin to move closer and those outside it to move further away
+            base_loss_fn = margin_contrastive
+        elif contrastive_loss_type == 'MNRL':
+            # MNRL contrastive loss
+            # aside from the specified negative examples, allows all batch elements to act as negative examples as well
+            base_loss_fn = mnrl_contrastive
+        # default
+        else:
+            # anything else, by default uses default
+            base_loss_fn = lambda x, y, t: F.cosine_embedding_loss(x, y, t, reduction=reduction_type)
+    
+    # binary classification cross entropy loss
     else:
         base_loss_fn = nn.BCEWithLogitsLoss(reduction=reduction_type)
 
@@ -28,7 +43,7 @@ def train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weigh
         full_output = model(batched_subgraphs, question_embeddings)
 
         # Custom loss with threshold handling
-        loss = custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs, equal_subgraph_weighting)
+        loss = custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs, equal_subgraph_weighting, contrastive_loss_type, margin, temperature, reduction_type)
         loss.backward()
         optimizer.step()
         torch.cuda.empty_cache() # Clear the cache

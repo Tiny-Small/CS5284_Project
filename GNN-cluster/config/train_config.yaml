@@ -1,9 +1,9 @@
 # config/train_config.yaml
-job_name: "Test_02"
+job_name: "yy_test_margin"
 
 model:
-  name: "GCNModel"
-  in_channels: 64          # Dimension of node embeddings (e.g., node2vec)
+  name: "GCNModel"         # Choices: GCNModel, GATModel, RGCNModel
+  in_channels: 384          # Dimension of node embeddings (e.g., node2vec: 64, sbert: 384)
   hidden_channels: 128
   out_channels: 1          # Forever 1; Unused output_embedding is True
   num_layers: 2            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
@@ -15,14 +15,17 @@ model:
   output_embedding: True   # If true, outputs node embeddings
 
 train:
-  batch_size: 32                    # Number of samples processed before model updates
-  num_epochs: 100                    # Total number of passes through the training dataset
+  batch_size: 128                   # Number of samples processed before model updates (16, 32, 64, 128)
+  num_epochs: 20                    # Total number of passes through the training dataset
   learning_rate: 0.001            # Step size for updating model weights during training
   start_idx: 0                     # Starting index for dataset slicing (e.g., for training subsets)
   end_idx: 2000                       # Ending index for dataset slicing (e.g., for training subsets)
   patience: 5                      # Number of epochs with no improvement before early stopping
   equal_subgraph_weighting: True   # When True, each subgraph is weighted equally regardless of size
   hits_at_k: 3                     # Top-k hits to consider for the hits@k metric during evaluation
+  contrastive_loss_type: "MNRL"  # Choices: "default" [allows larger batch size], "margin" [allows larger batch size], "MNRL" [needs smaller batch size] (if others, will auto use "default") -- NEW
+  margin: 0.5                      # For margin type contrastive loss only (0.4, 0.5, 0.6)
+  temperature: 0.05                # For MNRL type contrastive loss only
 
 val:
   start_idx: 50000                 # Starting index for dataset slicing (e.g., for validation subsets)
@@ -34,12 +37,15 @@ test:
 
 node_embed: "../data/embeddings/ud_node2vec_embeddings.txt"  # Path to node embeddings file
 idxes: "../data/data_preparation/idxes.json"  # Path to indexes file
-train_qa_data: "../data/raw/qa_train.txt"  # Path to QA dataset
-test_qa_data: "../data/raw/qa_test.txt"
-num_hops: 3  # Number of hops for dataset configuration
+train_qa_data: "../data/raw/2-hop/qa_train.txt"  # Path to QA dataset
+test_qa_data: "../data/raw/2-hop/qa_test.txt"
+raw_kb: "../data/raw/kb.txt"  # Path to full KB (for constructing subgraphs from paths extracted) -- NEW
+num_hops: 2  # Number of hops for dataset configuration
 
 threshold_model_activate: True  # Wraps GNN with threshold model if true
 threshold_value: 0            # Threshold value used when threshold model is inactive
+
+from_paths_activate: True  # Constructs subgraphs from paths extracted -- NEW
 
 ##### checks #####
 # output_embedding | equal_subgraph_weighting | threshold_model_activate

@@ -1,29 +1,28 @@
-import torch
+import random, torch
+import numpy as np
+
 from torch.utils.data import DataLoader, Subset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from src.utils.config import load_config, validate_config
-from src.utils.train import train_one_epoch, save_checkpoint
-from src.utils.evaluation import evaluate
-from src.utils.logging import log_metrics, save_config
-from src.datasets.kgqa_dataset import KGQADataset
-from src.datasets.data_utils import collate_fn
-from src.models.gcn_model import GCNModel
-from src.models.gat_model import GATModel
-from src.models.rgcn_model import RGCNModel
-from src.models.threshold_model import ThresholdedModel
-# from utils.config import load_config, validate_config
-# from utils.train import train_one_epoch, save_checkpoint
-# from utils.evaluation import evaluate
-# from utils.logging import log_metrics, save_config
-# from datasets.kgqa_dataset import KGQADataset
-# from datasets.data_utils import collate_fn
-# from models.gcn_model import GCNModel
-# from models.gat_model import GATModel
-# from models.rgcn_model import RGCNModel
-# from models.threshold_model import ThresholdedModel
-
-from sentence_transformers import SentenceTransformer
-
+# from src.utils.config import load_config, validate_config
+# from src.utils.train import train_one_epoch, save_checkpoint
+# from src.utils.evaluation import evaluate
+# from src.utils.logging import log_metrics, save_config
+# from src.datasets.kgqa_dataset import KGQADataset
+# from src.datasets.data_utils import collate_fn
+# from src.models.gcn_model import GCNModel
+# from src.models.gat_model import GATModel
+# from src.models.rgcn_model import RGCNModel
+# from src.models.threshold_model import ThresholdedModel
+from utils.config import load_config, validate_config
+from utils.train import train_one_epoch, save_checkpoint
+from utils.evaluation import evaluate
+from utils.logging import log_metrics, save_config
+from my_datasets.kgqa_dataset import KGQADataset
+from my_datasets.data_utils import collate_fn
+from models.gcn_model import GCNModel
+from models.gat_model import GATModel
+from models.rgcn_model import RGCNModel
+from models.threshold_model import ThresholdedModel
 
 def get_model(model_name, config, question_embedding_dim, num_relations):
     if model_name == "GCNModel":
@@ -61,6 +60,12 @@ def get_model(model_name, config, question_embedding_dim, num_relations):
 
 # Run it in GNN folder
 def main(config_path='../config/train_config.yaml'):
+
+    # ensure reproducibility
+    torch.manual_seed(2024)
+    random.seed(2024)
+    np.random.seed(2024)
+    
     # Load and validate configuration
     config = load_config(config_path)
     required_keys = [
@@ -72,16 +77,18 @@ def main(config_path='../config/train_config.yaml'):
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    custom_folder = 'hf_model'
-    encoding_model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1", cache_folder=custom_folder)
-    encoding_model.to(device)
+    # shifted inside kgqa_dataset.py as can be accessed more conveniently
+    # custom_folder = 'hf_model'
+    # encoding_model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1", cache_folder=custom_folder)
+    # encoding_model.to(device)
 
     # Initialize Train Dataset and DataLoader
     train_dataset = KGQADataset(
-        encoding_model,
         path_to_node_embed=config['node_embed'],
         path_to_idxes=config['idxes'],
         path_to_qa=config['train_qa_data'],
+        path_to_kb=config['raw_kb'],
+        from_paths_activate=config['from_paths_activate'],
         k=config['num_hops']
     )
     num_relations = train_dataset.num_relations # extract the num_relation from the entire graph
@@ -106,10 +113,11 @@ def main(config_path='../config/train_config.yaml'):
 
     # Initialize Test Dataset and DataLoader
     test_dataset = KGQADataset(
-        encoding_model,
         path_to_node_embed=config['node_embed'],
         path_to_idxes=config['idxes'],
         path_to_qa=config['test_qa_data'],
+        path_to_kb=config['raw_kb'],
+        from_paths_activate=config['from_paths_activate'],
         k=config['num_hops']
     )
     # Subset for testing a smaller set of data
@@ -122,12 +130,15 @@ def main(config_path='../config/train_config.yaml'):
         shuffle=True
     )
 
-    # Load job_name, equal_subgraph_weighting, threshold_value, and hits_at_k from config
+    # Load job_name, equal_subgraph_weighting, threshold_value, hits_at_k, contrastive_loss_type and margin from config
     job_name = config['job_name']
     equal_subgraph_weighting = config['train']['equal_subgraph_weighting']
     hits_at_k = config['train']['hits_at_k']
     threshold_model_activate = config['threshold_model_activate']
     threshold_value = config['threshold_value']
+    contrastive_loss_type = config['train']['contrastive_loss_type']
+    margin = config['train']['margin']
+    temperature = config['train']['temperature']
 
     # Initialize model, optimizer, scheduler, loss function, and variables for early stopping
     model = get_model(model_name=config['model']['name'],
@@ -155,7 +166,7 @@ def main(config_path='../config/train_config.yaml'):
     # Training and Evaluation Loop
     for epoch in range(config['train']['num_epochs']):
         # Train for one epoch
-        epoch_loss = train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weighting)
+        epoch_loss = train_one_epoch(model, train_loader, optimizer, device, equal_subgraph_weighting, contrastive_loss_type, margin, temperature)
         print(f"Epoch {epoch+1}/{config['train']['num_epochs']} - Train Loss: {epoch_loss:.4f}")
 
         # Evaluate on training data (or use a separate validation set if available)

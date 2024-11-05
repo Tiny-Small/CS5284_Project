@@ -197,3 +197,4 @@ GNN/src/models/models--sentence-transformers--multi-qa-MiniLM-L6-cos-v1
 tensorflow.*
 data_preparation/qa_train_subgraph_idxes.json
 GNN_old
+**/checkpoints/
