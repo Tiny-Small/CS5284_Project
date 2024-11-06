@@ -9,7 +9,7 @@ import networkx as nx
 from sentence_transformers import util, SentenceTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# custom_folder = '../hf_model'
+# custom_folder = '../hf_model' ### you might need to modify this
 # model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1", cache_folder=custom_folder)
 model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1")
 model.to(device)

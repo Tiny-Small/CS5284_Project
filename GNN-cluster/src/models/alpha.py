@@ -11,6 +11,11 @@ Metrics = namedtuple("Metrics", ["accuracy", "precision", "recall", "f1", "hits_
 
 
 def threshold_based_candidates(output, threshold=0.8):
+    """
+    Compare node embeddings outputted by the model w their respective question embedding.
+    Outputs candidates_mask as a prediction on which nodes are possible answer candidates.
+    The candidates_mask will be used to compute evaluation metrics: acc, full acc, P/R/F1, hit@k
+    """
     attributes_to_check = ["node_embedding", "question_embedding_expanded"]
 
     if all(hasattr(output, attr) for attr in attributes_to_check):
@@ -190,7 +195,7 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
             elif contrastive_loss_type == 'MNRL':
                 # MNRL contrastive loss
                 # allows all batch elements to act as negative examples as well
-                base_loss = base_loss_fn(output.question_embedding_expanded, output.node_embedding, reduction_type, temperature) * pos_weight
+                base_loss = base_loss_fn(output.question_embedding_expanded, output.node_embedding, reduction_type, margin, temperature) * pos_weight
 
             # anything else, by default uses default
             else:
@@ -243,10 +248,12 @@ def margin_contrastive(query_embeddings, embeddings, labels, reduction, margin=0
     while encouraging positive pairs to have high similarity.
     """
     # Separate positive and negative embeddings based on labels
-    positive_embeddings = embeddings[labels == 1]
-    positive_corresponding_query_embeddings = query_embeddings[labels == 1]
-    negative_embeddings = embeddings[labels == 0]
-    negative_corresponding_query_embeddings = query_embeddings[labels == 0]
+    positive_indices = labels == 1
+    negative_indices = labels == 0
+    positive_embeddings = embeddings[positive_indices]
+    positive_corresponding_query_embeddings = query_embeddings[positive_indices]
+    negative_embeddings = embeddings[negative_indices]
+    negative_corresponding_query_embeddings = query_embeddings[negative_indices]
 
     # Positive loss: Minimize distance between query and positive samples (target = 1)
     if len(positive_embeddings) > 0:
@@ -274,38 +281,85 @@ def margin_contrastive(query_embeddings, embeddings, labels, reduction, margin=0
     # Combine losses
     if reduction == "mean":
         total_loss = (positive_loss.mean() + negative_loss.mean()) / 2 # is this correct? maybe not used
+    # none
     else:
-        # none
-        total_loss = torch.cat([positive_loss, negative_loss], dim=0)
+        # total_loss = torch.cat([positive_loss, negative_loss], dim=0) ### wrong bcos of wrong indexing
+        
+        # Initialize total_loss with zeros in the shape of the original labels
+        total_loss = torch.zeros(labels.size(0), device=query_embeddings.device)
+        
+        # Insert positive and negative losses back into the original index positions
+        total_loss[positive_indices] = positive_loss
+        total_loss[negative_indices] = negative_loss
     
     return total_loss
 
 # MNRL contrastive loss
-def mnrl_contrastive(question_embedding_expanded, node_embedding, reduction_type, temperature=0.05):
+def mnrl_contrastive(question_embedding_expanded, node_embedding, reduction_type, margin=0.5, temperature=0.05):
     """
     Computes a contrastive loss with implicit negatives within the batch and explicit negatives.
+    Reindexes total_loss to original indexing if `reduction!="mean"`.
 
     This setup leverages implicit negatives in similarity_matrix,
-    where each off-diagonal entry serves as a "negative" for each query-node pair.
+    where each off-diagonal entry (node_i, q_j) serves as a implicit "negative" for each query-node pair.
+
+    We applied a mask to the similarity matrix so that positive nodes associated with the same question embedding
+    do not act as implicit negatives for each other.
     
-    Each item in the batch acts as a negative for every other item,
-    ensuring each query only considers its paired node as a positive.
+    Each query acts as an implicit negative for each node from a different query.
 
     The loss function applies cross-entropy to encourage the diagonal values to be the highest
     (i.e., most similar).
     """
-    # Compute cosine similarity matrix (batch_size, batch_size)
+    num_nodes = question_embedding_expanded.size(0)
+    
+    # Compute cosine similarity matrix (number of nodes, number of nodes)
     similarity_matrix = F.cosine_similarity(question_embedding_expanded.unsqueeze(1), node_embedding.unsqueeze(0), dim=2)
 
     # Scale similarities by temperature
     similarity_matrix /= temperature
 
-    # Apply softmax to get probabilities, focusing on the diagonal
-    # target labels are along the diagonal
-    diagonal_labels = torch.arange(similarity_matrix.size(0)).to(node_embedding.device)
-    loss = F.cross_entropy(similarity_matrix, diagonal_labels, reduction=reduction_type)
+    # Mask to prevent positives of the same question from acting as negatives for each other
+    mask = torch.ones_like(similarity_matrix, dtype=torch.bool, device=similarity_matrix.device)
+    for i in range(num_nodes):
+        same_question_mask = (question_embedding_expanded == question_embedding_expanded[i]).nonzero(as_tuple=True)[0]
+        mask[i, same_question_mask] = False
 
-    return loss
+    # Implicit: Compute cross-entropy loss on positive pairs (using only diagonal elements with mask applied)
+    masked_similarity_matrix = similarity_matrix.masked_fill(~mask, float('-inf'))
+    diagonal_labels = torch.arange(num_nodes).to(node_embedding.device)
+    positive_loss = F.cross_entropy(masked_similarity_matrix, diagonal_labels, reduction="none")
+
+    # Calculate margin-based contrastive loss for negative nodes
+    negative_mask = labels == 0
+    positive_indices = (labels == 1).nonzero(as_tuple=True)[0]
+    negative_indices = (labels == 0).nonzero(as_tuple=True)[0]
+
+    # Explicit: Only calculate margin-based loss for each positive node against all negatives
+    negative_similarity = similarity_matrix[positive_indices][:, negative_mask]
+    negative_loss = torch.clamp(negative_similarity - margin, min=0).mean(dim=1)
+
+    # Combine implicit and explicit losses for positive indices
+    total_positive_loss = positive_loss[positive_indices] + negative_loss
+
+    # For negative indices, use zeroed-out total_loss or alternative handling (e.g., setting margin as penalty)
+    total_negative_loss = torch.clamp(similarity_matrix[negative_indices][:, positive_indices] - margin, min=0).mean(dim=1)
+
+    # Combine losses
+    if reduction == "mean":
+        total_loss = (total_positive_loss.mean() + total_negative_loss.mean()) / 2 # placeholder for now... maybe not used
+    # none
+    else:
+        # total_loss = torch.cat([positive_loss, negative_loss], dim=0) ### wrong bcos of wrong indexing
+        
+        # Initialize total_loss with zeros in the shape of the original labels
+        total_loss = torch.zeros(labels.size(0), device=query_embeddings.device)
+        
+        # Insert positive and negative losses back into the original index positions
+        total_loss[positive_indices] = total_positive_loss
+        total_loss[negative_indices] = total_negative_loss
+    
+    return total_losss
 
     # # Separate positive and negative node embeddings
     # positive_nodes = node_embedding[labels == 1]
