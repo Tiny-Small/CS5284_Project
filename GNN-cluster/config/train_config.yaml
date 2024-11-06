@@ -23,8 +23,8 @@ train:
   patience: 5                      # Number of epochs with no improvement before early stopping
   equal_subgraph_weighting: True   # When True, each subgraph is weighted equally regardless of size
   hits_at_k: 3                     # Top-k hits to consider for the hits@k metric during evaluation
-  contrastive_loss_type: "MNRL"  # Choices: "default" [allows larger batch size], "margin" [allows larger batch size], "MNRL" [needs smaller batch size] (if others, will auto use "default") -- NEW
-  margin: 0.5                      # For margin type contrastive loss only (0.4, 0.5, 0.6)
+  contrastive_loss_type: "margin"  # Choices: "default" [allows larger batch size], "margin" [allows larger batch size], "MNRL" [needs smaller batch size] (if others, will auto use "default") -- NEW
+  margin: 0.3                      # For margin type contrastive loss only (0.2, 0.3, 0.4, 0.5)
   temperature: 0.05                # For MNRL type contrastive loss only
 
 val:
