@@ -1,5 +1,0 @@
-Epoch 1 - Accuracy: 0.9962, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0053, full_accuracy: 0.0000 
-Epoch 2 - Accuracy: 0.9962, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0053, full_accuracy: 0.0000 
-Epoch 3 - Accuracy: 0.9962, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0059, full_accuracy: 0.0000 
-Epoch 4 - Accuracy: 0.9962, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0061, full_accuracy: 0.0000 
-Epoch 5 - Accuracy: 0.9962, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0090, full_accuracy: 0.0000 

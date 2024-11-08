@@ -9,9 +9,9 @@ import networkx as nx
 from sentence_transformers import util, SentenceTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# custom_folder = '../hf_model' ### you might need to modify this
-# model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1", cache_folder=custom_folder)
-model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1")
+custom_folder = '../hf_model' ### you might need to modify this
+model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1", cache_folder=custom_folder)
+# model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1")
 model.to(device)
 
 class KGQADataset(torch.utils.data.Dataset):
@@ -20,7 +20,7 @@ class KGQADataset(torch.utils.data.Dataset):
         Initialize without precomputed subgraphs. Computes k-hop subgraphs on-the-fly.
         """
         self.from_paths_activate = from_paths_activate # needed in __getitem__
-        
+
         if self.from_paths_activate:
             # Load the main graph data
             self.G = self.generate_nx_graph(path_to_kb)
@@ -28,7 +28,7 @@ class KGQADataset(torch.utils.data.Dataset):
             relation_mapping = {relation: int(index) for index, relation in enumerate(set(relations))}
             self.pyg_graph = from_networkx(self.G)
             self.pyg_graph.edge_attr = torch.tensor([relation_mapping[r] for r in relations])
-            
+
             # get node ids/names
             self.id_to_node = {}
             self.node_to_id = {}
@@ -45,7 +45,7 @@ class KGQADataset(torch.utils.data.Dataset):
             # Load the main graph data
             self.loaded_entity_to_idx, self.loaded_edge_index, self.loaded_relations = self.load_data_json(path_to_idxes)
             self.data = self.create_data_object(self.loaded_edge_index, self.loaded_relations, self.loaded_entity_to_idx)
-    
+
             # Store the global number of unique relations
             self.num_relations = len(set(self.loaded_relations))
             self.k = k
@@ -76,7 +76,7 @@ class KGQADataset(torch.utils.data.Dataset):
         entity = self.extract_entity_from_question(question)
         # if entity not in self.loaded_entity_to_idx:
         #     raise ValueError(f"Entity {entity} not found in node index.")
-        
+
         # Step 2: Get the question embedding
         question_embedding = self.q_embeddings[idx]
 
@@ -117,16 +117,16 @@ class KGQADataset(torch.utils.data.Dataset):
         # OLD
         else:
             entity_node = self.loaded_entity_to_idx[entity]
-    
+
             # Step 3: Compute the k-hop subgraph around the entity dynamically
             subset_node_indices, sub_edge_index, _, edge_mask = self.get_k_hop_subgraph(entity_node)
-    
+
             # Step 4: Construct the subgraph based on these subset indices
             subgraph_data, node_map = self.construct_subgraph(subset_node_indices, sub_edge_index, edge_mask)
-    
+
             # Step 5: Get the labels
             labels = self.get_labels(answers, node_map)
-    
+
             # Step 6: Add node2vec embeddings to the subgraph data
             subgraph_data.x = self.get_node_embeddings(node_map)
 
@@ -278,14 +278,14 @@ class KGQADataset(torch.utils.data.Dataset):
 
     def generate_nx_graph(self, path):
         """
-        Constructs a networkx directed graph that includes both the original and reverse relations. 
+        Constructs a networkx directed graph that includes both the original and reverse relations.
         Each edge includes the concatenated relations between the same pairs of entities.
         """
         df = pd.read_csv(path, sep='|', header=None, names=['entity1', 'relation', 'entity2'])
-        
+
         # Remove duplicates
         df_unique = df.drop_duplicates() # 133582 edges after dedup
-    
+
         # Define reverse relations and construct reverse edges
         reverse_relations = {
         'directed_by': 'directed',
@@ -298,50 +298,50 @@ class KGQADataset(torch.utils.data.Dataset):
         'in_language': 'language_of',
         'release_year': 'is_released_year_of'
         }
-    
+
         reverse_rows = []
         for index, row in df_unique.iterrows():
             reverse_relation = reverse_relations[row['relation']]
             reverse_row = {'entity1': row['entity2'], 'relation': reverse_relation, 'entity2': row['entity1']}
             reverse_rows.append(reverse_row)
-    
+
         df_reverse = pd.DataFrame(reverse_rows) # 133582 edges
         df_combined = pd.concat([df_unique, df_reverse], ignore_index=True) # 267164 edges
-        
+
         # This step consolidates multiple edges between the same pair of entities into a single edge.
         # It concatenates all relation values associated with each pair of entities.
         df_final = df_combined.groupby(['entity1', 'entity2'], as_index=False).agg({
-            'relation': ' and '.join 
+            'relation': ' and '.join
         }) # 249349 edges
-    
+
         # Replace underscores in relation names
         df_final['relation'] = df_final['relation'].str.replace('_', ' ')
-    
+
         G = nx.from_pandas_edgelist(df_final, source='entity1', target='entity2', edge_attr='relation', create_using=nx.DiGraph())
         # Number of entities: 43234
         # Number of edges: 249349
         # Number of distinct relations: 38
         # Distinct relations: {'release year', 'directed by and written by and starred actors', 'directed by and starred actors', 'has imdb rating', 'is genre of', 'has tags and is tagged to', 'directed by and written by', 'starred actors and starring', 'directed', 'directed and written', 'has imdb votes', 'written by and directed by', 'written and directed', 'in language and language of', 'language of', 'has genre', 'is tagged to', 'has imdb rating and has tags', 'directed and written and starring', 'starred actors', 'starring', 'has tags', 'directed and starring', 'written by and directed by and starred actors', 'written by and written', 'written by', 'in language', 'release year and has tags', 'written and directed and starring', 'written and starring', 'is released year of and is tagged to', 'directed by', 'is imdb rating of', 'is imdb rating of and is tagged to', 'written', 'is released year of', 'written by and starred actors', 'is imdb votes of'}
-    
+
         return G
 
     def find_paths(self, G, u, n):
         """
         Finds paths in a graph G starting from node u with until reaching a maximum length of n edges.
-    
+
         Parameters:
         G (Graph): The nx graph where entities and relations are defined.
-        u (str): The starting node for the paths. 
+        u (str): The starting node for the paths.
         n (int): The maximum depth or length of paths in terms of edges.
-        
+
         Returns:
-        List of paths, where each path is a list of tuples (node, relation) representing 
+        List of paths, where each path is a list of tuples (node, relation) representing
         the nodes and relations along the path.
         """
-            
+
         if n == 0:
-            return [[(u, None)]] 
-    
+            return [[(u, None)]]
+
         paths = [
             [(u, G[u][neighbor]['relation'])] + path
             for neighbor in G.neighbors(u)
@@ -353,46 +353,46 @@ class KGQADataset(torch.utils.data.Dataset):
     def find_best_embedding(self, G, query_entity, q_embedding):
         """
         Finds the best path embedding for each unique candidate based on cosine similarity.
-        
+
         Parameters:
         G (Graph): The nx graph where entities and relations are defined.
         query_entity (str): The entity for which paths are being found.
         q_embedding (torch.Tensor): The embedding of the query entity.
-    
+
         Returns:
         dict: A dictionary where keys are candidates and values are the best path embeddings.
         """
-    
+
         paths = self.find_paths(G, query_entity, 2) + self.find_paths(G, query_entity, 1)
-    
+
         sentences = []
         candidates = []
-    
+
         for tuple_list in paths:
             # Extract the last entity (candidate) in the path
             candidate_entity = tuple_list[-1][0]
-            
+
             if candidate_entity != query_entity: # Avoid looping back to the query_entity
                 candidates.append(candidate_entity)
                 # Create the sentence for the path
                 sentence = ' '.join(f"{tup[0]} {tup[1]}" if tup[1] else tup[0] for tup in tuple_list)
                 sentences.append(sentence)
-    
+
         # Calculate path embeddings
         path_embeddings = model.encode(sentences, batch_size=128, convert_to_tensor=True)
         # Calculate cosine similarities
         cosine_scores = util.cos_sim(q_embedding, path_embeddings)[0]
-    
+
         # Dictionary to store the best path embedding for each candidate
         best_embeddings = {}
         # Dictionary to store the highest cosine score for each candidate
         best_scores = {}
-    
+
         for idx, candidate in enumerate(candidates):
             cosine_score = cosine_scores[idx].item()
-            
+
             if candidate not in best_embeddings or cosine_score > best_scores[candidate]:
                 best_scores[candidate] = cosine_score
                 best_embeddings[candidate] = path_embeddings[idx]
-    
+
         return best_embeddings

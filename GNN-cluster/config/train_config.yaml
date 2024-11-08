@@ -1,30 +1,39 @@
 # config/train_config.yaml
-job_name: "yy_test_margin"
+job_name: "Test_05"
 
 model:
-  name: "GCNModel"         # Choices: GCNModel, GATModel, RGCNModel
+  name: "RGCNModel"         # Choices: GCNModel, GATModel, RGCNModel
   in_channels: 384          # Dimension of node embeddings (e.g., node2vec: 64, sbert: 384)
-  hidden_channels: 128
+  hidden_channels: 64
   out_channels: 1          # Forever 1; Unused output_embedding is True
-  num_layers: 2            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
-  reduced_qn_dim: 128        # For RGCNModel
-  reduced_node_dim: 128      # For RGCNModel
-  PROC_QN_EMBED_DIM: 128     # For GCNModel only
-  PROC_X_DIM: 128            # For GCNModel only
+  num_layers: 5            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
+  reduced_qn_dim: 64        # For RGCNModel
+  reduced_node_dim: 64      # For RGCNModel
+  PROC_QN_EMBED_DIM: 4     # For GCNModel only
+  PROC_X_DIM: 4            # For GCNModel only
   num_heads: 8             # GAT-specific
   output_embedding: True   # If true, outputs node embeddings
+  use_residuals: True       # If true, residual connections will be added
 
 train:
-  batch_size: 128                   # Number of samples processed before model updates (16, 32, 64, 128)
-  num_epochs: 20                    # Total number of passes through the training dataset
+  batch_size: 64                   # Number of samples processed before model updates (16, 32, 64, 128)
+  num_epochs: 100                    # Total number of passes through the training dataset
   learning_rate: 0.001            # Step size for updating model weights during training
   start_idx: 0                     # Starting index for dataset slicing (e.g., for training subsets)
   end_idx: 2000                       # Ending index for dataset slicing (e.g., for training subsets)
   patience: 5                      # Number of epochs with no improvement before early stopping
   equal_subgraph_weighting: True   # When True, each subgraph is weighted equally regardless of size
   hits_at_k: 3                     # Top-k hits to consider for the hits@k metric during evaluation
-  contrastive_loss_type: "margin"  # Choices: "default" [allows larger batch size], "margin" [allows larger batch size], "MNRL" [needs smaller batch size] (if others, will auto use "default") -- NEW
-  margin: 0.3                      # For margin type contrastive loss only (0.2, 0.3, 0.4, 0.5)
+
+  contrastive_loss_type: "LearnableMargin"
+  # Choices:
+  # - "default": Allows larger batch sizes
+  # - "margin": Allows larger batch sizes
+  # - "MNRL": Requires smaller batch sizes
+  # - "LearnableMargin"
+  # (If any other option is specified, "default" will be used automatically)
+
+  margin: 0.5                      # For margin type contrastive loss only (0.2, 0.3, 0.4, 0.5)
   temperature: 0.05                # For MNRL type contrastive loss only
 
 val:
@@ -42,19 +51,7 @@ test_qa_data: "../data/raw/2-hop/qa_test.txt"
 raw_kb: "../data/raw/kb.txt"  # Path to full KB (for constructing subgraphs from paths extracted) -- NEW
 num_hops: 2  # Number of hops for dataset configuration
 
-threshold_model_activate: True  # Wraps GNN with threshold model if true
-threshold_value: 0            # Threshold value used when threshold model is inactive
+threshold_model_activate: False  # Forever false; Wraps GNN with threshold model if true
+threshold_value: 0.5            # Threshold value used when threshold model is inactive
 
 from_paths_activate: True  # Constructs subgraphs from paths extracted -- NEW
-
-##### checks #####
-# output_embedding | equal_subgraph_weighting | threshold_model_activate
-# True | True | True (done:   11)
-# True | True | False (done:  11)
-# True | False | True (done:  11)
-# True | False | False (done: 11)
-# False | True | True (done:  11)
-# False | True | False (done: 11)
-# False | False | True (done: 11)
-# False | False | False (done:11)
-#### complete ####

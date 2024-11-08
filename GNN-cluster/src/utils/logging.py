@@ -27,4 +27,4 @@ def save_config(config, dir, name='config.json'):
 
     # Save the config to a JSON file
     with open(log_file_path, 'w') as f:
-        json.dump(config, f)
+        json.dump(config, f, indent=4)

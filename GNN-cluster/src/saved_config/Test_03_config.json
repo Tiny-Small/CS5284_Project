@@ -1,13 +1,13 @@
 {
-    "job_name": "Test_01",
+    "job_name": "Test_03",
     "model": {
         "name": "RGCNModel",
         "in_channels": 384,
-        "hidden_channels": 32,
+        "hidden_channels": 64,
         "out_channels": 1,
-        "num_layers": 3,
-        "reduced_qn_dim": 32,
-        "reduced_node_dim": 32,
+        "num_layers": 5,
+        "reduced_qn_dim": 64,
+        "reduced_node_dim": 64,
         "PROC_QN_EMBED_DIM": 4,
         "PROC_X_DIM": 4,
         "num_heads": 8,

@@ -1,28 +1,29 @@
 import random, torch
 import numpy as np
-
 from torch.utils.data import DataLoader, Subset
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-# from src.utils.config import load_config, validate_config
-# from src.utils.train import train_one_epoch, save_checkpoint
-# from src.utils.evaluation import evaluate
-# from src.utils.logging import log_metrics, save_config
-# from src.datasets.kgqa_dataset import KGQADataset
-# from src.datasets.data_utils import collate_fn
-# from src.models.gcn_model import GCNModel
-# from src.models.gat_model import GATModel
-# from src.models.rgcn_model import RGCNModel
-# from src.models.threshold_model import ThresholdedModel
-from utils.config import load_config, validate_config
-from utils.train import train_one_epoch, save_checkpoint
-from utils.evaluation import evaluate
-from utils.logging import log_metrics, save_config
-from my_datasets.kgqa_dataset import KGQADataset
-from my_datasets.data_utils import collate_fn
-from models.gcn_model import GCNModel
-from models.gat_model import GATModel
-from models.rgcn_model import RGCNModel
-from models.threshold_model import ThresholdedModel
+# from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+from src.utils.config import load_config, validate_config
+from src.utils.train import train_one_epoch, save_checkpoint
+from src.utils.evaluation import evaluate
+from src.utils.logging import log_metrics, save_config
+from src.my_datasets.kgqa_dataset import KGQADataset
+from src.my_datasets.data_utils import collate_fn
+from src.models.gcn_model import GCNModel
+from src.models.gat_model import GATModel
+from src.models.rgcn_model import RGCNModel
+from src.models.threshold_model import ThresholdedModel
+
+# from utils.config import load_config, validate_config
+# from utils.train import train_one_epoch, save_checkpoint
+# from utils.evaluation import evaluate
+# from utils.logging import log_metrics, save_config
+# from my_datasets.kgqa_dataset import KGQADataset
+# from my_datasets.data_utils import collate_fn
+# from models.gcn_model import GCNModel
+# from models.gat_model import GATModel
+# from models.rgcn_model import RGCNModel
+# from models.threshold_model import ThresholdedModel
 
 def get_model(model_name, config, question_embedding_dim, num_relations):
     if model_name == "GCNModel":
@@ -34,7 +35,8 @@ def get_model(model_name, config, question_embedding_dim, num_relations):
             num_GCNCov=config['num_layers'],
             PROC_QN_EMBED_DIM=config['PROC_QN_EMBED_DIM'],
             PROC_X_DIM=config['PROC_X_DIM'],
-            output_embedding=config['output_embedding']
+            output_embedding=config['output_embedding'],
+            use_residuals=config['use_residuals']
         )
     elif model_name == "RGCNModel":
         return RGCNModel(
@@ -46,7 +48,8 @@ def get_model(model_name, config, question_embedding_dim, num_relations):
             num_rgcn=config['num_layers'],
             reduced_qn_dim=config['reduced_qn_dim'],
             reduced_node_dim=config['reduced_node_dim'],
-            output_embedding=config['output_embedding']
+            output_embedding=config['output_embedding'],
+            use_residuals=config['use_residuals']
         )
     elif model_name == "GATModel":
         return GATModel(
@@ -65,7 +68,7 @@ def main(config_path='../config/train_config.yaml'):
     torch.manual_seed(2024)
     random.seed(2024)
     np.random.seed(2024)
-    
+
     # Load and validate configuration
     config = load_config(config_path)
     required_keys = [
@@ -151,7 +154,7 @@ def main(config_path='../config/train_config.yaml'):
         model = ThresholdedModel(model).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['train']['learning_rate'])
-    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
+    # scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
 
     # Wrap the model for data parallelism if more than one GPU is available (outside loop for efficiency)
     if torch.cuda.device_count() > 1 and not isinstance(model, torch.nn.DataParallel):
@@ -173,7 +176,7 @@ def main(config_path='../config/train_config.yaml'):
         train_metrics = evaluate(train_loader, model, device, equal_subgraph_weighting, threshold_value, hits_at_k)
         val_metrics = evaluate(val_loader, model, device, equal_subgraph_weighting, threshold_value, hits_at_k)
 
-        scheduler.step(val_metrics.precision)
+        # scheduler.step(val_metrics.precision)
 
         # Log metrics
         log_metrics(epoch, train_metrics.accuracy, train_metrics.precision, train_metrics.recall, train_metrics.f1,

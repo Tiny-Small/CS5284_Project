@@ -1,5 +1,4 @@
 import torch
-import pandas as pd
 from torch_geometric.data import Batch
 
 def collate_fn(batch):

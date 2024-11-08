@@ -1,8 +1,7 @@
 import torch
-from sklearn.metrics import precision_score, recall_score, f1_score
 from tqdm import tqdm
-# from src.models.alpha import FullOutput, Metrics, threshold_based_candidates, calculate_avg_metrics
-from models.alpha import FullOutput, Metrics, threshold_based_candidates, calculate_avg_metrics
+from src.models.alpha import FullOutput, Metrics, threshold_based_candidates, calculate_avg_metrics
+# from models.alpha import FullOutput, Metrics, threshold_based_candidates, calculate_avg_metrics
 
 def evaluate(dataloader, model, device, equal_subgraph_weighting, threshold_value, k=1):
     model.eval()
@@ -29,7 +28,7 @@ def evaluate(dataloader, model, device, equal_subgraph_weighting, threshold_valu
                     equal_subgraph_weighting=equal_subgraph_weighting,
                     k=k
                 )
-
+    # print(f"threshold at eval:{threshold}")
     return Metrics(accuracy=accuracy,
                    precision=precision,
                    recall=recall,

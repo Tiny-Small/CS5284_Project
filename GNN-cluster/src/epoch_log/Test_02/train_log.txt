@@ -1,0 +1,5 @@
+Epoch 1 - Accuracy: 0.1408, Precision: 0.1068, Recall: 1.0000, F1: 0.1807, Hits_at_k: 0.3750, full_accuracy: 0.0000 
+Epoch 2 - Accuracy: 0.1613, Precision: 0.0931, Recall: 1.0000, F1: 0.1629, Hits_at_k: 0.3750, full_accuracy: 0.0000 
+Epoch 3 - Accuracy: 0.2158, Precision: 0.0996, Recall: 1.0000, F1: 0.1666, Hits_at_k: 0.3750, full_accuracy: 0.0000 
+Epoch 4 - Accuracy: 0.2309, Precision: 0.1301, Recall: 1.0000, F1: 0.2197, Hits_at_k: 0.3125, full_accuracy: 0.0000 
+Epoch 5 - Accuracy: 0.2776, Precision: 0.1276, Recall: 1.0000, F1: 0.2132, Hits_at_k: 0.2500, full_accuracy: 0.0000 

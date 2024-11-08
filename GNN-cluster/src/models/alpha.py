@@ -1,6 +1,7 @@
 import torch
-import torch_scatter
+import torch.nn as nn
 import torch.nn.functional as F
+import torch_scatter
 from collections import namedtuple
 from sklearn.metrics import precision_score, recall_score, f1_score
 
@@ -149,6 +150,7 @@ def adaptive_threshold_penalty(
 ):
     candidates_mask, _ = threshold_based_candidates(output, threshold)
 
+    # Non-differentiable loss. Threshold is not being learnt.
     _, avg_precision, avg_recall, _, _, _ = calculate_avg_metrics(
         batched_subgraphs=batched_subgraphs,
         stacked_labels=stacked_labels,
@@ -191,7 +193,7 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
                 # margin-based contrastive loss
                 # encourages embeddings within this margin to move closer and those outside it to move further away
                 base_loss = base_loss_fn(output.question_embedding_expanded, output.node_embedding, stacked_labels.squeeze(), reduction_type, margin) * pos_weight
-            
+
             elif contrastive_loss_type == 'MNRL':
                 # MNRL contrastive loss
                 # allows all batch elements to act as negative examples as well
@@ -203,7 +205,7 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
                 # minimize the cosine distance between "similar" pairs of embeddings while maximizing it between "dissimilar" pairs
                 target = 2 * stacked_labels.squeeze().float() - 1
                 base_loss = base_loss_fn(output.node_embedding, output.question_embedding_expanded, target) * pos_weight
-        
+
         # binary classification cross entropy loss
         else:
             pos_weight = pos_weight.view(-1,1)
@@ -212,7 +214,7 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
         # Sum and normalize by subgraph
         loss_per_subgraph = torch_scatter.scatter_add(base_loss, batched_subgraphs.batch, dim=0)
         loss = (loss_per_subgraph / nodes_per_subgraph).mean()
-        
+
     else:
         # batch-level pos_weight
         pos_count = stacked_labels.sum()
@@ -228,9 +230,11 @@ def custom_loss_fn(full_output, stacked_labels, base_loss_fn, batched_subgraphs,
 
     # Apply threshold penalty only if threshold exists (for FullOutput)
     if threshold is not None:
+        # print("Has threshold penalty")
         # threshold_penalty = 0.1 * (threshold - 0.65) ** 2
         threshold_penalty = adaptive_threshold_penalty(output, threshold, stacked_labels.float(), batched_subgraphs, equal_subgraph_weighting)
         return loss + threshold_penalty
+    # print("No threshold penalty")
     return loss
 
 # margin-based contrastive loss
@@ -284,14 +288,14 @@ def margin_contrastive(query_embeddings, embeddings, labels, reduction, margin=0
     # none
     else:
         # total_loss = torch.cat([positive_loss, negative_loss], dim=0) ### wrong bcos of wrong indexing
-        
+
         # Initialize total_loss with zeros in the shape of the original labels
         total_loss = torch.zeros(labels.size(0), device=query_embeddings.device)
-        
+
         # Insert positive and negative losses back into the original index positions
         total_loss[positive_indices] = positive_loss
         total_loss[negative_indices] = negative_loss
-    
+
     return total_loss
 
 # MNRL contrastive loss
@@ -305,14 +309,14 @@ def mnrl_contrastive(question_embedding_expanded, node_embedding, reduction_type
 
     We applied a mask to the similarity matrix so that positive nodes associated with the same question embedding
     do not act as implicit negatives for each other.
-    
+
     Each query acts as an implicit negative for each node from a different query.
 
     The loss function applies cross-entropy to encourage the diagonal values to be the highest
     (i.e., most similar).
     """
     num_nodes = question_embedding_expanded.size(0)
-    
+
     # Compute cosine similarity matrix (number of nodes, number of nodes)
     similarity_matrix = F.cosine_similarity(question_embedding_expanded.unsqueeze(1), node_embedding.unsqueeze(0), dim=2)
 
@@ -351,14 +355,14 @@ def mnrl_contrastive(question_embedding_expanded, node_embedding, reduction_type
     # none
     else:
         # total_loss = torch.cat([positive_loss, negative_loss], dim=0) ### wrong bcos of wrong indexing
-        
+
         # Initialize total_loss with zeros in the shape of the original labels
         total_loss = torch.zeros(labels.size(0), device=query_embeddings.device)
-        
+
         # Insert positive and negative losses back into the original index positions
         total_loss[positive_indices] = total_positive_loss
         total_loss[negative_indices] = total_negative_loss
-    
+
     return total_losss
 
     # # Separate positive and negative node embeddings
@@ -380,3 +384,38 @@ def mnrl_contrastive(question_embedding_expanded, node_embedding, reduction_type
     # # Combine the losses
     # total_loss = implicit_negative_loss + positive_loss + negative_loss
     # return total_loss
+
+
+class CosineEmbeddingLossWithLearnableMargin(nn.Module):
+    def __init__(self, margin_init=0.5, reduction='mean'):
+        super(CosineEmbeddingLossWithLearnableMargin, self).__init__()
+        self.margin = nn.Parameter(torch.tensor(margin_init, dtype=torch.float32))
+        self.reduction = reduction
+
+    def forward(self, embeddings_a, embeddings_b, labels):
+        # Compute cosine similarity
+        cos_sim = F.cosine_similarity(embeddings_a, embeddings_b)
+
+        # Calculate loss based on the labels and margin
+        positive_loss = (1 - cos_sim) ** 2  # For labels == 1
+        negative_loss = F.relu(cos_sim - self.margin) ** 2  # For labels == -1
+        # negative_loss = F.softplus(cos_sim - self.margin) ** 2  # For labels == -1
+
+        # If labels == 1, then positive_loss, else negative_loss
+        base_loss = torch.where(labels == 1, positive_loss, negative_loss)
+
+        # To ensure margin always influences the loss
+        regularization_term = 0.01 * self.margin
+        # regularization_term = 0
+
+        # print(f"base_loss.mean():{base_loss.mean()}")
+        # print(f"regularization_term:{regularization_term}")
+
+        loss = base_loss + regularization_term
+        # Apply reduction
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        else:
+            return loss

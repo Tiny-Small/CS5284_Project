@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-# from src.models.alpha import FullOutput
-from models.alpha import FullOutput
+from src.models.alpha import FullOutput
+# from models.alpha import FullOutput
 
 class ThresholdedModel(nn.Module):
     def __init__(self, model):
