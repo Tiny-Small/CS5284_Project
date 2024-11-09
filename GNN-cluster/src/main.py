@@ -92,6 +92,7 @@ def main(config_path='../config/train_config.yaml'):
         path_to_qa=config['train_qa_data'],
         path_to_kb=config['raw_kb'],
         from_paths_activate=config['from_paths_activate'],
+        entity_sbert=config['entity_sbert'],
         k=config['num_hops']
     )
     num_relations = train_dataset.num_relations # extract the num_relation from the entire graph
@@ -121,6 +122,7 @@ def main(config_path='../config/train_config.yaml'):
         path_to_qa=config['test_qa_data'],
         path_to_kb=config['raw_kb'],
         from_paths_activate=config['from_paths_activate'],
+        entity_sbert=config['entity_sbert'],
         k=config['num_hops']
     )
     # Subset for testing a smaller set of data
