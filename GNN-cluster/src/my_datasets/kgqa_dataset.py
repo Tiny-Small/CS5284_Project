@@ -15,11 +15,12 @@ model = SentenceTransformer("sentence-transformers/multi-qa-MiniLM-L6-cos-v1", c
 model.to(device)
 
 class KGQADataset(torch.utils.data.Dataset):
-    def __init__(self, path_to_node_embed, path_to_idxes, path_to_qa, path_to_kb, from_paths_activate, k=3):
+    def __init__(self, path_to_node_embed, path_to_idxes, path_to_qa, path_to_kb, from_paths_activate, entity_sbert, k=3):
         """
         Initialize without precomputed subgraphs. Computes k-hop subgraphs on-the-fly.
         """
         self.from_paths_activate = from_paths_activate # needed in __getitem__
+        self.entity_sbert = entity_sbert
 
         if self.from_paths_activate:
             # Load the main graph data
@@ -50,7 +51,8 @@ class KGQADataset(torch.utils.data.Dataset):
             self.num_relations = len(set(self.loaded_relations))
             self.k = k
 
-            # Load node2vec embeddings
+            # Load node2vec and sbert embeddings
+            self.sbert_embeddings = self.get_entity_sbert_embeddings(self.loaded_entity_to_idx)
             self.node2vec_embeddings = self.load_node2vec_embeddings(path_to_node_embed)
 
         # Load question and answer data
@@ -128,9 +130,18 @@ class KGQADataset(torch.utils.data.Dataset):
             labels = self.get_labels(answers, node_map)
 
             # Step 6: Add node2vec embeddings to the subgraph data
-            subgraph_data.x = self.get_node_embeddings(node_map)
+            subgraph_data.x = self.get_node_embeddings(node_map, self.entity_sbert)
 
         return subgraph_data, question_embedding, labels, node_map
+
+    def get_entity_sbert_embeddings(self, loaded_entity_to_idx):
+        # entity names as keys
+        # out = {model.encode([e], batch_size=128, convert_to_tensor=True) for e in loaded_entity_to_idx.keys()}
+
+        entities = list(loaded_entity_to_idx.keys())
+        encoded_values = model.encode(entities, batch_size=128, convert_to_tensor=False).tolist()
+        out = {e: encoded_values[i] for i, e in enumerate(entities)}
+        return out
 
     def get_k_hop_subgraph(self, entity_node):
         """
@@ -257,7 +268,7 @@ class KGQADataset(torch.utils.data.Dataset):
     #             embeddings[new] = self.node2vec_embeddings[idx_to_entity[ori]]
     #     return torch.tensor(embeddings, dtype=torch.float)
 
-    def get_node_embeddings(self, node_map, embedding_dim=64, random_init=False):
+    def get_node_embeddings(self, node_map, entity_sbert, embedding_dim=64, random_init=False):
         """
         Get node embeddings from node2vec. If node not found or random_init is True, create random embeddings.
         """
@@ -269,11 +280,13 @@ class KGQADataset(torch.utils.data.Dataset):
                 # Randomly initialize embeddings if random_init is True
                 embeddings[new] = [random.uniform(-0.1, 0.1) for _ in range(embedding_dim)]
             elif idx_to_entity[ori] in self.node2vec_embeddings:
-                embeddings[new] = self.node2vec_embeddings[idx_to_entity[ori]]
+                if entity_sbert:
+                    embeddings[new] = self.sbert_embeddings[idx_to_entity[ori]]
+                else:
+                    embeddings[new] = self.node2vec_embeddings[idx_to_entity[ori]]
             # else:
                 # Create random embedding for missing nodes if node2vec embedding doesn't exist
                 # embeddings[new] = [random.uniform(-0.1, 0.1) for _ in range(embedding_dim)]
-
         return torch.tensor(embeddings, dtype=torch.float)
 
     def generate_nx_graph(self, path):

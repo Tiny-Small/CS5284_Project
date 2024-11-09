@@ -1,12 +1,12 @@
 # config/train_config.yaml
-job_name: "Test_05"
+job_name: "Test_07"
 
 model:
   name: "RGCNModel"         # Choices: GCNModel, GATModel, RGCNModel
   in_channels: 384          # Dimension of node embeddings (e.g., node2vec: 64, sbert: 384)
   hidden_channels: 64
-  out_channels: 1          # Forever 1; Unused output_embedding is True
-  num_layers: 5            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
+  out_channels: 1          # Forever 1; Unused when output_embedding is True
+  num_layers: 3            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
   reduced_qn_dim: 64        # For RGCNModel
   reduced_node_dim: 64      # For RGCNModel
   PROC_QN_EMBED_DIM: 4     # For GCNModel only
@@ -54,4 +54,5 @@ num_hops: 2  # Number of hops for dataset configuration
 threshold_model_activate: False  # Forever false; Wraps GNN with threshold model if true
 threshold_value: 0.5            # Threshold value used when threshold model is inactive
 
-from_paths_activate: True  # Constructs subgraphs from paths extracted -- NEW
+from_paths_activate: False  # Constructs subgraphs from paths extracted -- NEW
+entity_sbert: True          # When True, use SBERT instead of node2vec for node embeddings
