@@ -5,3 +5,4 @@ Epoch 4 - Accuracy: 0.1549, Precision: 0.1273, Recall: 1.0000, F1: 0.2139, Hits_
 Epoch 5 - Accuracy: 0.2508, Precision: 0.1144, Recall: 1.0000, F1: 0.1916, Hits_at_k: 0.3750, full_accuracy: 0.0000 
 Epoch 6 - Accuracy: 0.3174, Precision: 0.1033, Recall: 1.0000, F1: 0.1807, Hits_at_k: 0.3125, full_accuracy: 0.0000 
 Epoch 7 - Accuracy: 0.3836, Precision: 0.0968, Recall: 1.0000, F1: 0.1625, Hits_at_k: 0.1250, full_accuracy: 0.0000 
+Epoch 8 - Accuracy: 0.3023, Precision: 0.1170, Recall: 1.0000, F1: 0.2033, Hits_at_k: 0.1875, full_accuracy: 0.0000 
