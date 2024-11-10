@@ -1,0 +1,1 @@
+Epoch 58 - Accuracy: 0.8596, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000 
