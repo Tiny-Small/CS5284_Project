@@ -1,14 +1,14 @@
 # config/train_config.yaml
-job_name: "Test_07"
+job_name: "Test_11"
 
 model:
   name: "RGCNModel"         # Choices: GCNModel, GATModel, RGCNModel
   in_channels: 384          # Dimension of node embeddings (e.g., node2vec: 64, sbert: 384)
-  hidden_channels: 64
+  hidden_channels: 128
   out_channels: 1          # Forever 1; Unused when output_embedding is True
-  num_layers: 3            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
-  reduced_qn_dim: 64        # For RGCNModel
-  reduced_node_dim: 64      # For RGCNModel
+  num_layers: 5            # Only counts hidden layers; input/output layers are built-in; At least 2 for GCNModel
+  reduced_qn_dim: 128        # For RGCNModel
+  reduced_node_dim: 128      # For RGCNModel
   PROC_QN_EMBED_DIM: 4     # For GCNModel only
   PROC_X_DIM: 4            # For GCNModel only
   num_heads: 8             # GAT-specific
@@ -21,7 +21,7 @@ train:
   learning_rate: 0.001            # Step size for updating model weights during training
   start_idx: 0                     # Starting index for dataset slicing (e.g., for training subsets)
   end_idx: 2000                       # Ending index for dataset slicing (e.g., for training subsets)
-  patience: 5                      # Number of epochs with no improvement before early stopping
+  patience: 20                      # Number of epochs with no improvement before early stopping
   equal_subgraph_weighting: True   # When True, each subgraph is weighted equally regardless of size
   hits_at_k: 3                     # Top-k hits to consider for the hits@k metric during evaluation
 
