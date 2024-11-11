@@ -1,9 +1,9 @@
 # config/train_config.yaml
 job_name: "Demo"
 
-model_path: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/src/checkpoints/Test_07/best_model_epoch_2.pth"
-save_all_path: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/demo/candidate_metadata.pt"
-save_emb_path: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/demo/subgraph_qembedding.pt"
+model_path: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/src/checkpoints/Test_07/best_model_epoch_2.pth"
+save_all_path: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/candidate_metadata.pt"
+save_emb_path: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/subgraph_qembedding.pt"
 
 model:
   name: "RGCNModel" # Choices: GCNModel, GATModel, RGCNModel
@@ -23,8 +23,8 @@ train:
   batch_size: 5 # Number of samples processed before model updates (16, 32, 64, 128)
   num_epochs: 1 # Total number of passes through the training dataset
   learning_rate: 0.001 # Step size for updating model weights during training
-  start_idx: 2020 # Starting index for dataset slicing (e.g., for training subsets)
-  end_idx: 2040 # Ending index for dataset slicing (e.g., for training subsets)
+  start_idx: 86 # Starting index for dataset slicing (e.g., for training subsets)
+  end_idx: 87 # Ending index for dataset slicing (e.g., for training subsets)
   patience: 5 # Number of epochs with no improvement before early stopping
   equal_subgraph_weighting: True # When True, each subgraph is weighted equally regardless of size
   hits_at_k: 3 # Top-k hits to consider for the hits@k metric during evaluation
@@ -32,11 +32,11 @@ train:
   margin: 0.3 # For margin type contrastive loss only (0.2, 0.3, 0.4, 0.5)
   temperature: 0.05 # For MNRL type contrastive loss only
 
-node_embed: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/embeddings/ud_node2vec_embeddings.txt" # Path to node embeddings file
-idxes: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/data_preparation/idxes.json" # Path to indexes file
-train_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/raw/2-hop/qa_train.txt" # Path to QA dataset
-test_qa_data: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/raw/2-hop/qa_test.txt"
-raw_kb: "/hpctmp/e0315913/CS5284_Project/GNN-cluster/data/raw/kb.txt" # Path to full KB (for constructing subgraphs from paths extracted) -- NEW
+node_embed: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/embeddings/ud_node2vec_embeddings.txt" # Path to node embeddings file
+idxes: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/data_preparation/idxes.json" # Path to indexes file
+train_qa_data: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/raw/2-hop/qa_train.txt" # Path to QA dataset
+test_qa_data: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/raw/2-hop/qa_test.txt"
+raw_kb: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/raw/kb.txt" # Path to full KB (for constructing subgraphs from paths extracted) -- NEW
 num_hops: 2 # Number of hops for dataset configuration
 entity_sbert: True
 threshold_model_activate: False # Forever false; Wraps GNN with threshold model if true
