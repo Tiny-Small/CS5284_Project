@@ -3,7 +3,6 @@ from tqdm import tqdm
 from src.models.alpha import threshold_based_candidates
 
 
-
 def extract_subgraph_qemb(dataloader, model, device, equal_subgraph_weighting, threshold_value, save_all_path, save_emb_path):
     model.eval()
     
@@ -11,8 +10,8 @@ def extract_subgraph_qemb(dataloader, model, device, equal_subgraph_weighting, t
     all_question_embeddings = []
     all_candidates_masks = []
     all_similarity_scores = []
-    all_node_maps = []  # New list to store node maps
-    all_labels = []  # New list to store labels
+    all_node_maps = [] 
+    all_labels = [] 
 
     with torch.no_grad():
         for batched_subgraphs, question_embeddings, stacked_labels, node_maps, labels in tqdm(dataloader, desc="Extracting subgraph", leave=True):
@@ -27,28 +26,33 @@ def extract_subgraph_qemb(dataloader, model, device, equal_subgraph_weighting, t
             threshold = full_output.threshold if hasattr(full_output, 'threshold') else threshold_value
 
             # Determine candidate nodes based on similarity threshold
-            candidates_mask, similarity_scores = threshold_based_candidates(output, threshold=threshold)
+            candidates_mask, similarity_score = threshold_based_candidates(output, threshold=threshold)  # Now expecting a single similarity score per batch
 
             # Save batched data to lists (detaching to avoid memory leaks)
             all_batched_subgraphs.append(batched_subgraphs.x.detach().cpu())
             all_question_embeddings.append(question_embeddings.detach().cpu())
             all_candidates_masks.append(candidates_mask.detach().cpu())
-            all_node_maps.extend(node_maps)  # Collect node maps
-            all_labels.extend(labels)  # Collect labels
-            if similarity_scores is not None:
-                all_similarity_scores.append(similarity_scores.detach().cpu())
+            all_node_maps.extend(node_maps) 
+            all_labels.extend(labels) 
+            if similarity_score is not None:
+                all_similarity_scores.append(float(similarity_score))
                 
     # Concatenate all batched data along the 0-axis (vertically)
     all_batched_subgraphs = torch.cat(all_batched_subgraphs, dim=0)
     all_question_embeddings = torch.cat(all_question_embeddings, dim=0)
     all_candidates_masks = torch.cat(all_candidates_masks, dim=0)
-    all_similarity_scores = torch.cat(all_similarity_scores, dim=0) if all_similarity_scores else None
 
     # Saving processed data to files
     save_subg_qemb_file(all_batched_subgraphs, all_question_embeddings, file_path=save_emb_path)
-    save_all_to_file(all_batched_subgraphs, all_question_embeddings, all_candidates_masks, all_similarity_scores, all_node_maps, all_labels, file_path=save_all_path)
-
-
+    save_all_to_file(
+        all_batched_subgraphs,
+        all_question_embeddings,
+        all_candidates_masks,
+        all_similarity_scores,
+        all_node_maps,
+        all_labels,
+        file_path=save_all_path
+    )
 def save_all_to_file(batched_subgraphs, question_embeddings, candidates_mask, similarity_scores, node_map, labels, file_path):
     
     data = {
