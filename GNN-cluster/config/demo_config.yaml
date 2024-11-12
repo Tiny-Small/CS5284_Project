@@ -1,9 +1,12 @@
 # config/train_config.yaml
 job_name: "Demo"
 
-model_path: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/src/checkpoints/Test_07/best_model_epoch_2.pth"
-save_all_path: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/candidate_metadata.pt"
-save_emb_path: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/subgraph_qembedding.pt"
+model_path_test2: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/src/checkpoints/Test_02/best_model_epoch_5.pth"
+save_all_path_test2: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/candidate_metadata_test2.pt"
+save_emb_path_test2: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/subgraph_qembedding_test2.pt"
+model_path_test8: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/src/checkpoints/Test_08/best_model_epoch_63.pth"
+save_all_path_test8: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/candidate_metadata_test8.pt"
+save_emb_path_test8: "/hpctmp/e0315913/demo/CS5284_Project/GNN-cluster/data/demo/subgraph_qembedding_test8.pt"
 
 model:
   name: "RGCNModel" # Choices: GCNModel, GATModel, RGCNModel
@@ -41,4 +44,5 @@ num_hops: 2 # Number of hops for dataset configuration
 entity_sbert: True
 threshold_model_activate: False # Forever false; Wraps GNN with threshold model if true
 threshold_value: 0.5 # Threshold value used when threshold model is inactive
-from_paths_activate: False # Constructs subgraphs from paths extracted -- NEW
+from_paths_activate_test2: True # Constructs subgraphs from paths extracted -- NEW
+from_paths_activate_test8: False # Constructs subgraphs from paths extracted -- NEW
