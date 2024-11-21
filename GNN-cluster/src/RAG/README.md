@@ -26,4 +26,4 @@ python baseline.py --sbert_path 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1
 The evaluation is done on the validation dataset subset we chosen. And results are stored in the `results` folder as `RAG_bm25.json` and `Retrieval_bm25.json`.
 
 ### GNN+LLM
-The GNN used here is RGCN and we used SBERT-entity as node embedding.
+The GNN used here is RGCN and we used SBERT-entity as node embedding. To run the evaluation, follow the Jupyter notebooks `KGQA System (GNN+LLM).ipynb` and `Evaluation (GNN+LLM).ipynb`.
