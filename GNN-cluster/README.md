@@ -8,10 +8,9 @@ This folder contains the main implementation of the project, including all neces
 - `src/`: Main source code for the implementation.
   - `checkpoints/`: Stores the final trained model checkpoints.
   - `epoch_log/`: Logs for tracking performance across epochs.
-  - `LLM_GNN/`: Code for incorporating the LLM with the GNN for RAG evaluation.
   - `models/`: Contains the GNN models (e.g., RGCN) and auxiliary components like learnable margin modules.
   - `my_datasets/`: Files related to data loaders and dataset handling.
-  - `RAG/`: Scripts for evaluating the RAG system combining GNN and LLM.
+  - `RAG/`: Scripts for evaluating the RAG systems (GNN+LLM and BM25+LLM).
   - `saved_config/`: Configuration files tested during experimentation.
   - `utils/`: Utility scripts for configuration, evaluation, logging, and training.
   - `main.py`: Entry point to start model training and related tasks.
