@@ -1,4 +1,5 @@
 torch-geometric
+networkx
 pandas
 sentence-transformers
 ipywidgets
