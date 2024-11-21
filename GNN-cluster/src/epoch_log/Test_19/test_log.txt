@@ -1,1 +1,0 @@
-Epoch 63 - Accuracy: 0.8415, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0000, full_accuracy: 0.0000, margin: -0.41488128900527954 
