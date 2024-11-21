@@ -1,0 +1,4 @@
+torch-geometric
+pandas
+sentence-transformers
+ipywidgets

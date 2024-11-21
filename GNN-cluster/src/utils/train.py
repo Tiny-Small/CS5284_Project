@@ -3,10 +3,10 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
-from src.models.alpha import (custom_loss_fn, margin_contrastive, mnrl_contrastive,
-                          CosineEmbeddingLossWithLearnableMargin)
-# from models.alpha import (custom_loss_fn, margin_contrastive, mnrl_contrastive,
+# from src.models.alpha import (custom_loss_fn, margin_contrastive, mnrl_contrastive,
 #                           CosineEmbeddingLossWithLearnableMargin)
+from models.alpha import (custom_loss_fn, margin_contrastive, mnrl_contrastive,
+                          CosineEmbeddingLossWithLearnableMargin)
 
 base_loss_fn = None
 reduction_type = None
