@@ -15,3 +15,7 @@ Epoch 14 - Accuracy: 0.6086, Precision: 0.2911, Recall: 1.0000, F1: 0.4380, Hits
 Epoch 15 - Accuracy: 0.5494, Precision: 0.2553, Recall: 0.9688, F1: 0.3601, Hits_at_k: 0.1250, full_accuracy: 0.0000 
 Epoch 16 - Accuracy: 0.6802, Precision: 0.3859, Recall: 1.0000, F1: 0.5052, Hits_at_k: 1.0000, full_accuracy: 0.1250 
 Epoch 17 - Accuracy: 0.8798, Precision: 0.5417, Recall: 0.8733, F1: 0.6200, Hits_at_k: 0.7500, full_accuracy: 0.2500 
+Epoch 18 - Accuracy: 0.7785, Precision: 0.5167, Recall: 0.9911, F1: 0.6192, Hits_at_k: 0.7500, full_accuracy: 0.1250 
+Epoch 19 - Accuracy: 0.7711, Precision: 0.5264, Recall: 1.0000, F1: 0.6272, Hits_at_k: 0.7500, full_accuracy: 0.2500 
+Epoch 20 - Accuracy: 0.8384, Precision: 0.6094, Recall: 1.0000, F1: 0.7253, Hits_at_k: 1.0000, full_accuracy: 0.2500 
+Epoch 21 - Accuracy: 0.9801, Precision: 0.8265, Recall: 0.9970, F1: 0.8595, Hits_at_k: 0.8750, full_accuracy: 0.6250 

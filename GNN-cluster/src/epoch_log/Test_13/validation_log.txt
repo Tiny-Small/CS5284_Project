@@ -10,3 +10,4 @@ Epoch 9 - Accuracy: 0.1564, Precision: 0.1157, Recall: 1.0000, F1: 0.2040, Hits_
 Epoch 10 - Accuracy: 0.3521, Precision: 0.1746, Recall: 1.0000, F1: 0.2538, Hits_at_k: 0.2500, full_accuracy: 0.0000 
 Epoch 11 - Accuracy: 0.1321, Precision: 0.1321, Recall: 1.0000, F1: 0.2209, Hits_at_k: 0.3750, full_accuracy: 0.0000 
 Epoch 12 - Accuracy: 0.1903, Precision: 0.1903, Recall: 1.0000, F1: 0.3041, Hits_at_k: 0.6250, full_accuracy: 0.0000 
+Epoch 13 - Accuracy: 0.2072, Precision: 0.0989, Recall: 1.0000, F1: 0.1756, Hits_at_k: 0.0000, full_accuracy: 0.0000 

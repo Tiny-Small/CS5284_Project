@@ -1,0 +1,82 @@
+Epoch 1 - Accuracy: 0.0882, Precision: 0.0882, Recall: 1.0000, F1: 0.1472, Hits_at_k: 0.1875, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.4870, requires_grad=True) 
+Epoch 2 - Accuracy: 0.1389, Precision: 0.1389, Recall: 1.0000, F1: 0.2253, Hits_at_k: 0.3125, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.4800, requires_grad=True) 
+Epoch 3 - Accuracy: 0.1128, Precision: 0.1128, Recall: 1.0000, F1: 0.1929, Hits_at_k: 0.2500, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.4626, requires_grad=True) 
+Epoch 4 - Accuracy: 0.1370, Precision: 0.1370, Recall: 1.0000, F1: 0.2240, Hits_at_k: 0.3750, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.4426, requires_grad=True) 
+Epoch 5 - Accuracy: 0.0850, Precision: 0.0850, Recall: 1.0000, F1: 0.1518, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.4196, requires_grad=True) 
+Epoch 6 - Accuracy: 0.1021, Precision: 0.1021, Recall: 1.0000, F1: 0.1738, Hits_at_k: 0.1875, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.3948, requires_grad=True) 
+Epoch 7 - Accuracy: 0.1087, Precision: 0.1073, Recall: 1.0000, F1: 0.1812, Hits_at_k: 0.3750, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.3714, requires_grad=True) 
+Epoch 8 - Accuracy: 0.1177, Precision: 0.1176, Recall: 1.0000, F1: 0.1991, Hits_at_k: 0.3750, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.3482, requires_grad=True) 
+Epoch 9 - Accuracy: 0.1727, Precision: 0.0959, Recall: 1.0000, F1: 0.1688, Hits_at_k: 0.3750, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.3215, requires_grad=True) 
+Epoch 10 - Accuracy: 0.1746, Precision: 0.0904, Recall: 1.0000, F1: 0.1622, Hits_at_k: 0.3125, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.2966, requires_grad=True) 
+Epoch 11 - Accuracy: 0.3069, Precision: 0.1820, Recall: 0.9375, F1: 0.2905, Hits_at_k: 0.5625, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.2712, requires_grad=True) 
+Epoch 12 - Accuracy: 0.2228, Precision: 0.0714, Recall: 0.9375, F1: 0.1282, Hits_at_k: 0.3125, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.2444, requires_grad=True) 
+Epoch 13 - Accuracy: 0.2074, Precision: 0.1220, Recall: 1.0000, F1: 0.2010, Hits_at_k: 0.2500, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.2170, requires_grad=True) 
+Epoch 14 - Accuracy: 0.4354, Precision: 0.0868, Recall: 0.9375, F1: 0.1510, Hits_at_k: 0.3125, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.1890, requires_grad=True) 
+Epoch 15 - Accuracy: 0.3700, Precision: 0.1466, Recall: 0.9904, F1: 0.2431, Hits_at_k: 0.5000, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.1643, requires_grad=True) 
+Epoch 16 - Accuracy: 0.4282, Precision: 0.1685, Recall: 0.9926, F1: 0.2680, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.1379, requires_grad=True) 
+Epoch 17 - Accuracy: 0.2419, Precision: 0.1287, Recall: 0.9167, F1: 0.2207, Hits_at_k: 0.5000, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.1105, requires_grad=True) 
+Epoch 18 - Accuracy: 0.2012, Precision: 0.1252, Recall: 1.0000, F1: 0.2188, Hits_at_k: 0.2500, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.0842, requires_grad=True) 
+Epoch 19 - Accuracy: 0.2933, Precision: 0.1156, Recall: 0.8958, F1: 0.1944, Hits_at_k: 0.3125, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.0591, requires_grad=True) 
+Epoch 20 - Accuracy: 0.3503, Precision: 0.1375, Recall: 0.9167, F1: 0.2362, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.0339, requires_grad=True) 
+Epoch 21 - Accuracy: 0.4263, Precision: 0.2230, Recall: 0.8195, F1: 0.3241, Hits_at_k: 0.6875, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(0.0073, requires_grad=True) 
+Epoch 22 - Accuracy: 0.2288, Precision: 0.1641, Recall: 0.9747, F1: 0.2693, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.0170, requires_grad=True) 
+Epoch 23 - Accuracy: 0.6654, Precision: 0.2524, Recall: 0.9167, F1: 0.3565, Hits_at_k: 0.6875, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.0441, requires_grad=True) 
+Epoch 24 - Accuracy: 0.5741, Precision: 0.2119, Recall: 0.6928, F1: 0.3006, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.0682, requires_grad=True) 
+Epoch 25 - Accuracy: 0.5878, Precision: 0.1822, Recall: 0.7081, F1: 0.2730, Hits_at_k: 0.3750, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.0944, requires_grad=True) 
+Epoch 26 - Accuracy: 0.5936, Precision: 0.2116, Recall: 0.7167, F1: 0.2990, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.1206, requires_grad=True) 
+Epoch 27 - Accuracy: 0.7335, Precision: 0.1997, Recall: 0.5199, F1: 0.2630, Hits_at_k: 0.6250, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.1466, requires_grad=True) 
+Epoch 28 - Accuracy: 0.7671, Precision: 0.2193, Recall: 0.4271, F1: 0.2700, Hits_at_k: 0.6250, full_accuracy: 0.0625, margin: Parameter containing:
+tensor(-0.1697, requires_grad=True) 
+Epoch 29 - Accuracy: 0.7479, Precision: 0.2533, Recall: 0.4127, F1: 0.2784, Hits_at_k: 0.5000, full_accuracy: 0.0625, margin: Parameter containing:
+tensor(-0.1968, requires_grad=True) 
+Epoch 30 - Accuracy: 0.6591, Precision: 0.2409, Recall: 0.5321, F1: 0.2881, Hits_at_k: 0.4375, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.2228, requires_grad=True) 
+Epoch 31 - Accuracy: 0.8716, Precision: 0.3386, Recall: 0.5898, F1: 0.4130, Hits_at_k: 0.4375, full_accuracy: 0.1250, margin: Parameter containing:
+tensor(-0.2467, requires_grad=True) 
+Epoch 32 - Accuracy: 0.8811, Precision: 0.3148, Recall: 0.4532, F1: 0.3517, Hits_at_k: 0.6250, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.2738, requires_grad=True) 
+Epoch 33 - Accuracy: 0.8744, Precision: 0.1931, Recall: 0.2316, F1: 0.1944, Hits_at_k: 0.5000, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.2999, requires_grad=True) 
+Epoch 34 - Accuracy: 0.7772, Precision: 0.2890, Recall: 0.4583, F1: 0.3119, Hits_at_k: 0.5625, full_accuracy: 0.0625, margin: Parameter containing:
+tensor(-0.3233, requires_grad=True) 
+Epoch 35 - Accuracy: 0.8070, Precision: 0.2904, Recall: 0.4685, F1: 0.3361, Hits_at_k: 0.6250, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.3469, requires_grad=True) 
+Epoch 36 - Accuracy: 0.8383, Precision: 0.2932, Recall: 0.3567, F1: 0.2832, Hits_at_k: 0.6875, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.3713, requires_grad=True) 
+Epoch 37 - Accuracy: 0.8044, Precision: 0.2560, Recall: 0.4063, F1: 0.3044, Hits_at_k: 0.6250, full_accuracy: 0.0625, margin: Parameter containing:
+tensor(-0.3948, requires_grad=True) 
+Epoch 38 - Accuracy: 0.8624, Precision: 0.1572, Recall: 0.2330, F1: 0.1846, Hits_at_k: 0.5625, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.4196, requires_grad=True) 
+Epoch 39 - Accuracy: 0.8307, Precision: 0.2098, Recall: 0.3265, F1: 0.2433, Hits_at_k: 0.5625, full_accuracy: 0.0625, margin: Parameter containing:
+tensor(-0.4416, requires_grad=True) 
+Epoch 40 - Accuracy: 0.8484, Precision: 0.3872, Recall: 0.3662, F1: 0.3522, Hits_at_k: 0.6250, full_accuracy: 0.0625, margin: Parameter containing:
+tensor(-0.4635, requires_grad=True) 
+Epoch 41 - Accuracy: 0.7531, Precision: 0.2684, Recall: 0.4320, F1: 0.2986, Hits_at_k: 0.6250, full_accuracy: 0.0000, margin: Parameter containing:
+tensor(-0.4853, requires_grad=True) 
