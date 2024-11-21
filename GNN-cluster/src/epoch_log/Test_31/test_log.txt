@@ -1,0 +1,17 @@
+Epoch 1 - Accuracy: 0.8751, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.5370534658432007 
+Epoch 2 - Accuracy: 0.9042, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1667, full_accuracy: 0.0000, margin: -0.5930420160293579 
+Epoch 3 - Accuracy: 0.8927, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.6546945571899414 
+Epoch 4 - Accuracy: 0.9025, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.6989232301712036 
+Epoch 5 - Accuracy: 0.8810, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0833, full_accuracy: 0.0000, margin: -0.7205716967582703 
+Epoch 6 - Accuracy: 0.8744, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0417, full_accuracy: 0.0000, margin: -0.7394312620162964 
+Epoch 7 - Accuracy: 0.8749, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.7505751848220825 
+Epoch 8 - Accuracy: 0.8773, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.7681613564491272 
+Epoch 9 - Accuracy: 0.8838, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.7819724082946777 
+Epoch 10 - Accuracy: 0.8861, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1667, full_accuracy: 0.0000, margin: -0.7888268828392029 
+Epoch 11 - Accuracy: 0.8787, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.7961368560791016 
+Epoch 12 - Accuracy: 0.8737, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0417, full_accuracy: 0.0000, margin: -0.7944201231002808 
+Epoch 13 - Accuracy: 0.8735, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.7998259663581848 
+Epoch 14 - Accuracy: 0.8707, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1667, full_accuracy: 0.0000, margin: -0.8060541749000549 
+Epoch 15 - Accuracy: 0.9038, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1667, full_accuracy: 0.0000, margin: -0.8164782524108887 
+Epoch 16 - Accuracy: 0.8990, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.8160198926925659 
+Epoch 17 - Accuracy: 0.8657, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.1250, full_accuracy: 0.0000, margin: -0.8217819929122925 

@@ -1,0 +1,50 @@
+{
+    "job_name": "Test_19",
+    "model": {
+        "name": "RGCNModel",
+        "in_channels": 384,
+        "hidden_channels": 64,
+        "out_channels": 1,
+        "num_layers": 3,
+        "reduced_qn_dim": 64,
+        "reduced_node_dim": 64,
+        "PROC_QN_EMBED_DIM": 4,
+        "PROC_X_DIM": 4,
+        "num_heads": 8,
+        "output_embedding": true,
+        "use_residuals": true
+    },
+    "train": {
+        "batch_size": 64,
+        "num_epochs": 100,
+        "learning_rate": 0.001,
+        "start_idx": 0,
+        "end_idx": 2000,
+        "patience": 20,
+        "equal_subgraph_weighting": true,
+        "hits_at_k": 3,
+        "contrastive_loss_type": "LearnableMargin",
+        "margin": 0.5,
+        "temperature": 0.05
+    },
+    "val": {
+        "start_idx": 50000,
+        "end_idx": 50200
+    },
+    "test": {
+        "start_idx": 0,
+        "end_idx": 200
+    },
+    "node_embed": "../data/embeddings/ud_node2vec_embeddings.txt",
+    "idxes": "../data/data_preparation/idxes.json",
+    "train_qa_data": "../data/raw/2-hop/qa_train.txt",
+    "test_qa_data": "../data/raw/2-hop/qa_test.txt",
+    "raw_kb": "../data/raw/kb.txt",
+    "matched_indices": "../data/matched_indices.txt",
+    "num_hops": 2,
+    "threshold_model_activate": false,
+    "threshold_value": 0.5,
+    "from_paths_activate": false,
+    "entity_sbert": true,
+    "same_distribution": true
+}

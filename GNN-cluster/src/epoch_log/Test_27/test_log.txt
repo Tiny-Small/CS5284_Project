@@ -1,0 +1,1 @@
+Epoch 37 - Accuracy: 0.9066, Precision: 0.0000, Recall: 0.0000, F1: 0.0000, Hits_at_k: 0.0000, full_accuracy: 0.0000, margin: -0.37487828731536865 
